@@ -1,0 +1,21 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^source \"\\$HOME/\\.nvm/nvm\\.sh\" && nvm use 24\\.19\\.0 >/dev/null && cd /Users/xm/custom-apps/remote-file-manager && npm run compile$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^npm run compile && node --test test/connection-config\\.test\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "/^node --test test/connection-config\\.test\\.js$/": {
+      "approve": true,
+      "matchCommandLine": true
+    },
+    "npm test": true,
+    "/^npm run compile && node --test$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}

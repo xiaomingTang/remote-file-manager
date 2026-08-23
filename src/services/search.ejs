@@ -1,0 +1,458 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      max-width: 900px;
+      min-width: 360px;
+      padding: 28px 32px;
+      color: var(--vscode-foreground);
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+    }
+
+    h1 {
+      font-size: 1.4em;
+      font-weight: 600;
+      margin: 0 0 24px;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    input,
+    select,
+    button {
+      box-sizing: border-box;
+      color: var(--vscode-input-foreground);
+      background: var(--vscode-input-background);
+      border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+      font: inherit;
+    }
+
+    input {
+      width: 100%;
+      padding: 7px 9px;
+    }
+
+    #connection {
+      width: 30%;
+      min-width: 180px;
+      padding: 7px 9px;
+    }
+
+    .search-input {
+      position: relative;
+    }
+
+    .search-input input {
+      padding-right: 34px;
+    }
+
+    .pattern-input {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pattern-input input {
+      min-width: 0;
+    }
+
+    .icon-button {
+      width: 32px;
+      min-width: 32px;
+      padding: 0;
+    }
+
+    .filter-icon {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      background: currentColor;
+      clip-path: polygon(0 10%, 100% 10%, 62% 52%, 62% 90%, 38% 90%, 38% 52%);
+    }
+
+    .icon-button.active {
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
+    }
+
+    .help {
+      position: relative;
+      display: inline-flex;
+      margin-left: 4px;
+    }
+
+    .help-button {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      font-size: .85em;
+      line-height: 18px;
+    }
+
+    .tooltip {
+      position: absolute;
+      left: 0;
+      top: 24px;
+      z-index: 2;
+      display: none;
+      width: min(460px, 75vw);
+      padding: 10px;
+      border: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-editorWidget-background);
+      box-shadow: 0 4px 12px var(--vscode-widget-shadow);
+      font-size: .9em;
+    }
+
+    .help.open .tooltip {
+      display: block;
+    }
+
+    .tooltip p {
+      margin: 0 0 8px;
+    }
+
+    .tooltip table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .tooltip th,
+    .tooltip td {
+      padding: 5px;
+      border: 1px solid var(--vscode-panel-border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .tooltip code {
+      font-family: var(--vscode-editor-font-family);
+    }
+
+    .clear {
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--vscode-descriptionForeground);
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--vscode-toolbar-hoverBackground);
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    .summary {
+      margin: 24px 0 10px;
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .result-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .result-section {
+      min-width: 0;
+    }
+
+    .result-section h2 {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      margin: 0;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-editor-background);
+      font-size: 1em;
+      font-weight: 600;
+    }
+
+    .results {
+      max-height: 45vh;
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      list-style: none;
+    }
+
+    .result {
+      border-top: 1px solid var(--vscode-panel-border);
+    }
+
+    .result button {
+      display: block;
+      width: 100%;
+      padding: 10px 0;
+      border: 0;
+      text-align: left;
+      background: transparent;
+    }
+
+    .result button:hover {
+      color: var(--vscode-textLink-foreground);
+    }
+
+    .name {
+      display: block;
+      font-weight: 600;
+    }
+
+    .path {
+      display: block;
+      margin-top: 3px;
+      color: var(--vscode-descriptionForeground);
+      overflow-wrap: anywhere;
+    }
+
+    .error {
+      color: var(--vscode-errorForeground);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Search Files and Directories</h1>
+  <form id="searchForm">
+    <label for="connection">Search in</label>
+    <select id="connection">
+      <% connections.forEach((connection)=> { %>
+        <option value="<%= connection.id %>" <%=connection.id===defaultConnectionId ? "selected" : "" %>><%=
+            connection.id %>
+        </option>
+        <% }); %>
+    </select>
+    <label for="value">File name</label>
+    <div class="search-input">
+      <input id="value" type="text" value="<%= defaultValue %>" autofocus />
+      <button class="clear" id="clear" type="button" title="Clear search" aria-label="Clear search">&#10005;</button>
+    </div>
+    <label for="directory">Search directory</label>
+    <input id="directory" type="text" value="<%= defaultSearchDirectory %>" />
+    <label for="excludePatterns">Exclude patterns
+      <span class="help" id="excludeHelp">
+        <button class="help-button" id="helpButton" type="button" title="Show pattern examples"
+          aria-label="Show pattern examples">?</button>
+        <span class="tooltip" role="tooltip">
+          <p>Patterns are relative to the search directory and separated with ",".</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Pattern</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>**/node_modules</code></td>
+                <td>Ignores <code>node_modules</code> and its subdirectories at any level (default exclude).</td>
+              </tr>
+              <tr>
+                <td><code>dist/**/*.map</code></td>
+                <td>Relative pattern that ignores <code>.map</code> files at any level under <code>dist</code>.</td>
+              </tr>
+              <tr>
+                <td><code>app</code></td>
+                <td>Relative pattern that matches the complete <code>./app</code> path, whether it is a file or
+                  directory.</td>
+              </tr>
+            </tbody>
+          </table>
+        </span>
+      </span>
+    </label>
+    <div class="pattern-input">
+      <input id="excludePatterns" type="text" value="<%= defaultExcludePatterns %>"
+        placeholder='Relative patterns, separated with ","' />
+      <button class="icon-button" id="defaultExcludes" type="button" title="Use default exclude patterns"
+        aria-label="Use default exclude patterns" aria-pressed="<%= useDefaultExcludePatterns %>"><span
+          class="filter-icon" aria-hidden="true"></span></button>
+    </div>
+    <div class="actions">
+      <button id="search" type="submit">Search</button>
+    </div>
+  </form>
+  <div class="summary" id="summary" aria-live="polite"></div>
+  <div class="result-columns">
+    <section class="result-section" aria-labelledby="filesHeading">
+      <h2 id="filesHeading">Files (0)</h2>
+      <ul class="results" id="filesResults"></ul>
+    </section>
+    <section class="result-section" aria-labelledby="directoriesHeading">
+      <h2 id="directoriesHeading">Directories (0)</h2>
+      <ul class="results" id="directoriesResults"></ul>
+    </section>
+  </div>
+  <script>
+    const vscode = acquireVsCodeApi();
+    const searchForm = document.getElementById("searchForm");
+    const connection = document.getElementById("connection");
+    const value = document.getElementById("value");
+    const directory = document.getElementById("directory");
+    const excludePatterns = document.getElementById("excludePatterns");
+    const defaultExcludes = document.getElementById("defaultExcludes");
+    const excludeHelp = document.getElementById("excludeHelp");
+    const helpButton = document.getElementById("helpButton");
+    const searchButton = document.getElementById("search");
+    const clearButton = document.getElementById("clear");
+    const summary = document.getElementById("summary");
+    const filesHeading = document.getElementById("filesHeading");
+    const directoriesHeading = document.getElementById("directoriesHeading");
+    const filesResults = document.getElementById("filesResults");
+    const directoriesResults = document.getElementById("directoriesResults");
+
+    function updateDefaultExcludesState() {
+      const active = defaultExcludes.getAttribute("aria-pressed") === "true";
+      defaultExcludes.classList.toggle("active", active);
+    }
+
+    updateDefaultExcludesState();
+
+    function clearResults() {
+      filesResults.replaceChildren();
+      directoriesResults.replaceChildren();
+      filesHeading.textContent = "Files (0)";
+      directoriesHeading.textContent = "Directories (0)";
+    }
+
+    value.focus();
+
+    function runSearch() {
+      const searchValue = value.value.trim();
+      if (!searchValue) {
+        summary.textContent = "";
+        clearResults();
+        value.focus();
+        return;
+      }
+      searchButton.disabled = true;
+      searchButton.textContent = "Searching...";
+      summary.textContent = "";
+      clearResults();
+      vscode.postMessage({
+        type: "search",
+        excludePatternsText: excludePatterns.value,
+        useDefaultExcludePatterns: defaultExcludes.getAttribute("aria-pressed") === "true",
+        options: {
+          connectionId: connection.value,
+          searchValue,
+          searchDirectory: directory.value.trim(),
+          excludePatterns: excludePatterns.value.split(",").map((pattern) => pattern.trim()).filter(Boolean),
+        },
+      });
+    }
+    searchForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      runSearch();
+    });
+    clearButton.addEventListener("click", () => {
+      value.value = "";
+      summary.textContent = "";
+      clearResults();
+      value.focus();
+    });
+    defaultExcludes.addEventListener("click", () => {
+      const active = defaultExcludes.getAttribute("aria-pressed") === "true";
+      defaultExcludes.setAttribute("aria-pressed", String(!active));
+      updateDefaultExcludesState();
+    });
+    helpButton.addEventListener("click", () => {
+      excludeHelp.classList.toggle("open");
+    });
+    document.addEventListener("click", (event) => {
+      if (!excludeHelp.contains(event.target)) {
+        excludeHelp.classList.remove("open");
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !event.isComposing) {
+        excludeHelp.classList.remove("open");
+      }
+    });
+    connection.addEventListener("change", () => {
+      vscode.postMessage({ type: "connection-change", connectionId: connection.value });
+      value.focus();
+    });
+    window.addEventListener("keydown", (event) => {
+      const isFindShortcut = (event.metaKey || event.ctrlKey)
+        && !event.altKey
+        && event.key.toLowerCase() === "f";
+      if (!isFindShortcut) {
+        return;
+      }
+      event.preventDefault();
+      value.focus();
+      value.select();
+    });
+    window.addEventListener("message", (event) => {
+      const message = event.data;
+      searchButton.disabled = false;
+      searchButton.textContent = "Search";
+      if (message.type === "connection-default") {
+        directory.value = message.searchDirectory;
+        return;
+      }
+      if (message.type === "error") {
+        summary.textContent = message.message;
+        summary.className = "summary error";
+        return;
+      }
+      if (message.type !== "results") return;
+      summary.className = "summary";
+      summary.textContent = "";
+      const fileCount = message.results.filter((result) => !result.isDirectory).length;
+      const directoryCount = message.results.length - fileCount;
+      filesHeading.textContent = `Files (${fileCount})`;
+      directoriesHeading.textContent = `Directories (${directoryCount})`;
+      message.results.forEach((result) => {
+        const item = document.createElement("li");
+        item.className = "result";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.innerHTML = `<span class="name"></span><span class="path"></span>`;
+        button.querySelector(".name").textContent = result.name;
+        button.querySelector(".path").textContent = result.path;
+        button.addEventListener("click", () => vscode.postMessage({ type: "open", connectionId: result.connectionId, path: result.path, isDirectory: result.isDirectory }));
+        item.appendChild(button);
+        (result.isDirectory ? directoriesResults : filesResults).appendChild(item);
+      });
+    });
+  </script>
+</body>
+
+</html>

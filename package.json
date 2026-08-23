@@ -1,0 +1,451 @@
+{
+  "name": "remote-file-manager",
+  "displayName": "Remote File Manager",
+  "description": "Browse and edit remote files from Docker or SSH without a remote VS Code server.",
+  "icon": "images/cloud.png",
+  "version": "0.1.0",
+  "publisher": "xiaoming110",
+  "license": "MIT",
+  "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiaomingTang/remote-file-manager.git"
+  },
+  "files": [
+    "dist/**",
+    "images/**",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "scripts": {
+    "check": "tsc -p . --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --external:*.node --loader:.ejs=text --outfile=dist/extension.js --sourcemap",
+    "compile": "npm run clean && tsc -p . && npm run bundle",
+    "vscode:prepublish": "npm run compile",
+    "pretest": "npm run compile",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/ejs": "^3.1.5",
+    "@types/node": "^24.13.3",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
+    "ejs": "^3.1.10",
+    "esbuild": "^0.28.2",
+    "fast-uri": "^3.1.0",
+    "prettier-plugin-ejs": "^1.0.3",
+    "typescript": "^7.0.2"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "remoteFileManager",
+          "title": "Remote File Manager",
+          "icon": "$(cloud)"
+        }
+      ]
+    },
+    "views": {
+      "remoteFileManager": [
+        {
+          "id": "remoteFileManagerView",
+          "name": "Remote Files",
+          "icon": "$(cloud)"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "remoteFileManager.renameNode",
+        "key": "f2",
+        "mac": "f2",
+        "when": "focusedView == remoteFileManagerView && listFocus && !inputFocus && !remoteFileManager.multiSelection && !remoteFileManager.selectedNodeReadonly"
+      },
+      {
+        "command": "remoteFileManager.deleteNode",
+        "key": "delete",
+        "mac": "delete",
+        "when": "focusedView == remoteFileManagerView && listFocus && !inputFocus && !remoteFileManager.selectedNodeReadonly"
+      },
+      {
+        "command": "remoteFileManager.deleteNode",
+        "key": "ctrl+backspace",
+        "mac": "cmd+backspace",
+        "when": "focusedView == remoteFileManagerView && listFocus && !inputFocus && !remoteFileManager.selectedNodeReadonly"
+      },
+      {
+        "command": "remoteFileManager.cutNode",
+        "key": "ctrl+x",
+        "mac": "cmd+x",
+        "when": "focusedView == remoteFileManagerView && listFocus && !inputFocus && !remoteFileManager.selectedNodeReadonly"
+      },
+      {
+        "command": "remoteFileManager.copyNode",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "focusedView == remoteFileManagerView && listFocus && !inputFocus"
+      },
+      {
+        "command": "remoteFileManager.pasteNode",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "focusedView == remoteFileManagerView && listFocus && !inputFocus && remoteFileManager.clipboardAvailable && !remoteFileManager.multiSelection && !remoteFileManager.selectedDirectoryReadonly"
+      },
+      {
+        "command": "remoteFileManager.pasteRoot",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "focusedView == remoteFileManagerView && !listFocus && !inputFocus && remoteFileManager.clipboardAvailable && !remoteFileManager.multiSelection && !remoteFileManager.selectedDirectoryReadonly"
+      },
+      {
+        "command": "remoteFileManager.search",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "focusedView == remoteFileManagerView && listFocus && !inputFocus"
+      }
+    ],
+    "commands": [
+      {
+        "command": "remoteFileManager.manageConnections",
+        "title": "Settings",
+        "category": "Remote File Manager",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "remoteFileManager.refresh",
+        "title": "Refresh Remote Tree",
+        "category": "Remote File Manager",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "remoteFileManager.search",
+        "title": "Search Files",
+        "category": "Remote File Manager",
+        "icon": "$(search)"
+      },
+      {
+        "command": "remoteFileManager.openTerminal",
+        "title": "Open Remote Terminal",
+        "category": "Remote File Manager",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "remoteFileManager.openFile",
+        "title": "Open File"
+      },
+      {
+        "command": "remoteFileManager.showReadonlyStatus",
+        "title": "Read-only",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "remoteFileManager.download",
+        "title": "Download",
+        "category": "Remote File Manager",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "remoteFileManager.createFile",
+        "title": "New File",
+        "category": "Remote File Manager",
+        "icon": "$(new-file)",
+        "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
+      },
+      {
+        "command": "remoteFileManager.createFolder",
+        "title": "New Folder",
+        "category": "Remote File Manager",
+        "icon": "$(new-folder)",
+        "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
+      },
+      {
+        "command": "remoteFileManager.uploadFiles",
+        "title": "Upload",
+        "category": "Remote File Manager",
+        "icon": "$(cloud-upload)",
+        "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
+      },
+      {
+        "command": "remoteFileManager.getInfo",
+        "title": "Get Info",
+        "category": "Remote File Manager"
+      },
+      {
+        "command": "remoteFileManager.deleteNode",
+        "title": "Delete",
+        "category": "Remote File Manager",
+        "icon": "$(trash)",
+        "enablement": "viewItem != file.readonly && viewItem != directory.readonly"
+      },
+      {
+        "command": "remoteFileManager.renameNode",
+        "title": "Rename",
+        "category": "Remote File Manager",
+        "enablement": "viewItem != file.readonly && viewItem != directory.readonly"
+      },
+      {
+        "command": "remoteFileManager.cutNode",
+        "title": "Cut",
+        "category": "Remote File Manager",
+        "enablement": "viewItem != file.readonly && viewItem != directory.readonly"
+      },
+      {
+        "command": "remoteFileManager.copyNode",
+        "title": "Copy",
+        "category": "Remote File Manager"
+      },
+      {
+        "command": "remoteFileManager.pasteNode",
+        "title": "Paste",
+        "category": "Remote File Manager",
+        "enablement": "remoteFileManager.clipboardAvailable && viewItem != directory.readonly && viewItem != connection.readonly"
+      },
+      {
+        "command": "remoteFileManager.pasteRoot",
+        "title": "Paste into Selected Connection Root",
+        "category": "Remote File Manager",
+        "icon": "$(clippy)",
+        "enablement": "remoteFileManager.clipboardAvailable && !remoteFileManager.selectedDirectoryReadonly"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "remoteFileManager.manageConnections",
+          "when": "view == remoteFileManagerView",
+          "group": "navigation"
+        },
+        {
+          "command": "remoteFileManager.refresh",
+          "when": "view == remoteFileManagerView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "remoteFileManager.getInfo",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "group": "navigation@0"
+        },
+        {
+          "command": "remoteFileManager.showReadonlyStatus",
+          "when": "view == remoteFileManagerView && (viewItem == file.readonly || viewItem == directory.readonly || viewItem == connection.readonly)",
+          "group": "inline"
+        },
+        {
+          "command": "remoteFileManager.createFile",
+          "when": "view == remoteFileManagerView && (viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
+          "group": "navigation@1"
+        },
+        {
+          "command": "remoteFileManager.createFolder",
+          "when": "view == remoteFileManagerView && (viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
+          "group": "navigation@2"
+        },
+        {
+          "command": "remoteFileManager.cutNode",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "group": "1_clipboard@1"
+        },
+        {
+          "command": "remoteFileManager.copyNode",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "group": "1_clipboard@2"
+        },
+        {
+          "command": "remoteFileManager.pasteNode",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
+          "group": "1_clipboard@3"
+        },
+        {
+          "command": "remoteFileManager.renameNode",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "group": "2_modification@1"
+        },
+        {
+          "command": "remoteFileManager.deleteNode",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "group": "2_modification@2"
+        },
+        {
+          "command": "remoteFileManager.uploadFiles",
+          "when": "view == remoteFileManagerView && (viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
+          "group": "3_transfer@1"
+        },
+        {
+          "command": "remoteFileManager.download",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "group": "3_transfer@2"
+        },
+        {
+          "command": "remoteFileManager.search",
+          "when": "view == remoteFileManagerView && (viewItem == connection || viewItem == connection.readonly || viewItem == directory || viewItem == directory.readonly || viewItem == file || viewItem == file.readonly)",
+          "group": "4_terminal@0"
+        },
+        {
+          "command": "remoteFileManager.openTerminal",
+          "when": "view == remoteFileManagerView && (viewItem == connection || viewItem == directory || viewItem == directory.readonly)",
+          "group": "4_terminal@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "remoteFileManager.download",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Remote File Manager",
+      "properties": {
+        "remoteFileManager.connections": {
+          "type": "object",
+          "default": {
+            "connections": {
+              "docker": [],
+              "ssh": [],
+              "wsl": []
+            }
+          },
+          "description": "Remote connection definitions for Docker, SSH, and WSL2 targets.",
+          "properties": {
+            "connections": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "docker",
+                "ssh"
+              ],
+              "description": "Buckets containing Docker and SSH connection definitions. Keep Docker entries under `docker` and SSH entries under `ssh`.",
+              "properties": {
+                "docker": {
+                  "type": "array",
+                  "description": "Docker container connections. Container names or IDs can be obtained with `docker ps --format '{{.Names}}'` or `docker ps -a`;",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "container",
+                      "path"
+                    ],
+                    "description": "A Docker connection that runs remote file operations with `docker exec <container> sh -lc ...`.",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Unique identifier shown in the Remote Files view and used to update or select this connection. Choose any non-empty value; example: \"api\"."
+                      },
+                      "container": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Docker container name or ID passed to `docker exec`. Get a running container name with `docker ps --format '{{.Names}}'`, or include stopped containers with `docker ps -a`; example: \"api-dev\" or \"8f3c2a1b4d5e\"."
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Root directory inside the container to browse and edit. Get it from the container image, Dockerfile, or `docker exec <container> pwd`; example: \"/app\"."
+                      }
+                    }
+                  }
+                },
+                "ssh": {
+                  "type": "array",
+                  "description": "SSH host connections. Obtain the host, username, and port from your SSH configuration or administrator.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "host",
+                      "username",
+                      "path"
+                    ],
+                    "description": "An SSH connection that runs remote file operations with the system `ssh`/`scp` commands, so `~/.ssh/config`, default keys, and the SSH agent are used automatically.",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Unique identifier shown in the Remote Files view and used to update or select this connection. Choose any non-empty value; example: \"staging\"."
+                      },
+                      "host": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "SSH hostname, IP address, or Host alias from `~/.ssh/config`. The system `ssh` command resolves this the same way a terminal would; example: \"staging.example.com\", \"192.0.2.10\", or \"staging\"."
+                      },
+                      "username": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Account used to log in to the SSH server. If `host` is a `~/.ssh/config` alias that already sets User, this still must be provided and is passed as `user@host`. Example: \"deploy\"."
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Root directory on the SSH server to browse and edit. Get it by running `ssh user@host pwd` or by checking the remote deployment directory; example: \"/var/www/app\"."
+                      },
+                      "port": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 65535,
+                        "description": "Optional SSH server TCP port. Omit it to use `~/.ssh/config` or the system `ssh` default (22). Example: 22."
+                      }
+                    }
+                  }
+                },
+                "wsl": {
+                  "type": "array",
+                  "description": "WSL2 distribution connections. The distribution name must appear in `wsl.exe --list --quiet`.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "distribution",
+                      "path"
+                    ],
+                    "description": "A local WSL2 connection that runs remote file operations with `wsl.exe -d <distribution> sh -lc ...`.",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Unique identifier shown in the Remote Files view. Example: \"ubuntu\"."
+                      },
+                      "distribution": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "WSL distribution name from `wsl.exe --list --quiet`. Example: \"Ubuntu-22.04\"."
+                      },
+                      "user": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Optional Linux user. Omit it to use the distribution's default user."
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Linux directory to browse and edit. Use a Linux path such as \"/home/user/project\"."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "connections"
+          ]
+        }
+      }
+    }
+  }
+}
