@@ -427,6 +427,12 @@
         directory.value = message.searchDirectory;
         return;
       }
+      if (message.type === "search-context") {
+        connection.value = message.connectionId;
+        directory.value = message.searchDirectory;
+        value.focus();
+        return;
+      }
       if (message.type === "error") {
         summary.textContent = message.message;
         summary.className = "summary error";

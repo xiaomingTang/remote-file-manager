@@ -402,6 +402,11 @@ export function activate(context: vscode.ExtensionContext): void {
       });
     } else {
       searchPanel.reveal(getOutermostEditorColumn("right"));
+      searchPanel.webview.postMessage({
+        type: "search-context",
+        connectionId: definition.id,
+        searchDirectory: defaultSearchDirectory,
+      });
     }
   };
 
