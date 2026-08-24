@@ -106,8 +106,14 @@ export class WSLConnector implements IRemoteConnector {
     const target = path || "/";
     const result = await this.execLinux(
       `for entry in ${quoteShellArgument(target)}/* ${quoteShellArgument(target)}/.[!.]* ${quoteShellArgument(target)}/..?*; do
-          [ -e "$entry" ] || continue
+          [ -e "$entry" ] || [ -L "$entry" ] || continue
           name=\${entry##*/}
+          is_link=false
+          broken=false
+          if [ -L "$entry" ]; then
+            is_link=true
+            [ -e "$entry" ] || broken=true
+          fi
           if [ -d "$entry" ]; then
             kind=dir
           else
@@ -118,7 +124,7 @@ export class WSLConnector implements IRemoteConnector {
           else
             writable=false
           fi
-          printf '%s\\t%s\\t%s\\n' "$kind" "$writable" "$name"
+          printf '%s\\t%s\\t%s\\t%s\\t%s\\n' "$kind" "$writable" "$is_link" "$broken" "$name"
         done`,
     );
 
@@ -126,11 +132,19 @@ export class WSLConnector implements IRemoteConnector {
       .split(/\r?\n/)
       .filter(Boolean)
       .map((line) => {
-        const [kind, writable, ...nameParts] = line.split("\t");
+        const [
+          kind,
+          writable,
+          isSymbolicLink,
+          isBrokenSymbolicLink,
+          ...nameParts
+        ] = line.split("\t");
         return {
           name: nameParts.join("\t"),
           isDirectory: kind === "dir",
           writable: writable === "true",
+          isSymbolicLink: isSymbolicLink === "true",
+          isBrokenSymbolicLink: isBrokenSymbolicLink === "true",
         };
       });
   }
@@ -144,7 +158,7 @@ export class WSLConnector implements IRemoteConnector {
     const target = searchDirectory || "/";
     const pattern = `*${searchValue}*`;
     const result = await this.execLinux(
-      `find ${quoteShellArgument(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d \\) -iname ${quoteShellArgument(pattern)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
+      `find ${quoteShellArgument(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d -o -type l \\) -iname ${quoteShellArgument(pattern)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
       { maxBuffer: 10 * 1024 * 1024 },
     );
 
@@ -153,9 +167,11 @@ export class WSLConnector implements IRemoteConnector {
       .filter(Boolean)
       .map((line) => {
         const separatorIndex = line.indexOf("\t");
+        const kind = line.slice(0, separatorIndex);
         return {
-          isDirectory: line.slice(0, separatorIndex) === "d",
+          isDirectory: kind === "d",
           path: line.slice(separatorIndex + 1),
+          isSymbolicLink: kind === "l",
         };
       });
   }

@@ -166,21 +166,21 @@
         "title": "📄 New File",
         "category": "Remote File Manager",
         "icon": "$(new-file)",
-        "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
+        "enablement": "!(viewItem =~ /^.*\\.readonly.*$/)"
       },
       {
         "command": "remoteFileManager.createFolder",
         "title": "📁 New Folder",
         "category": "Remote File Manager",
         "icon": "$(new-folder)",
-        "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
+        "enablement": "!(viewItem =~ /^.*\\.readonly.*$/)"
       },
       {
         "command": "remoteFileManager.uploadFiles",
         "title": "Upload",
         "category": "Remote File Manager",
         "icon": "$(cloud-upload)",
-        "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
+        "enablement": "!(viewItem =~ /^.*\\.readonly.*$/)"
       },
       {
         "command": "remoteFileManager.getInfo",
@@ -188,23 +188,29 @@
         "category": "Remote File Manager"
       },
       {
+        "command": "remoteFileManager.locateTarget",
+        "title": "↗️ Locate Target",
+        "category": "Remote File Manager",
+        "icon": "$(target)"
+      },
+      {
         "command": "remoteFileManager.deleteNode",
         "title": "Delete",
         "category": "Remote File Manager",
         "icon": "$(trash)",
-        "enablement": "viewItem != file.readonly && viewItem != directory.readonly"
+        "enablement": "!(viewItem =~ /^.*\\.readonly.*$/)"
       },
       {
         "command": "remoteFileManager.renameNode",
         "title": "Rename",
         "category": "Remote File Manager",
-        "enablement": "viewItem != file.readonly && viewItem != directory.readonly"
+        "enablement": "!(viewItem =~ /^.*\\.readonly.*$/)"
       },
       {
         "command": "remoteFileManager.cutNode",
         "title": "Cut",
         "category": "Remote File Manager",
-        "enablement": "viewItem != file.readonly && viewItem != directory.readonly"
+        "enablement": "!(viewItem =~ /^.*\\.readonly.*$/)"
       },
       {
         "command": "remoteFileManager.copyNode",
@@ -215,7 +221,7 @@
         "command": "remoteFileManager.pasteNode",
         "title": "Paste",
         "category": "Remote File Manager",
-        "enablement": "remoteFileManager.clipboardAvailable && viewItem != directory.readonly && viewItem != connection.readonly"
+        "enablement": "remoteFileManager.clipboardAvailable && !(viewItem =~ /^.*\\.readonly.*$/)"
       },
       {
         "command": "remoteFileManager.pasteRoot",
@@ -240,73 +246,78 @@
       ],
       "view/item/context": [
         {
+          "command": "remoteFileManager.locateTarget",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory)\\.symlink(\\.readonly)?$/",
+          "group": "navigation@0"
+        },
+        {
           "command": "remoteFileManager.editWithDiff",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^file.*$/",
           "group": "2_modification@0"
         },
         {
           "command": "remoteFileManager.getInfo",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
-          "group": "navigation@0"
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "navigation@1"
         },
         {
           "command": "remoteFileManager.showReadonlyStatus",
-          "when": "view == remoteFileManagerView && (viewItem == file.readonly || viewItem == directory.readonly || viewItem == connection.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^.*\\.readonly.*$/",
           "group": "inline"
         },
         {
           "command": "remoteFileManager.createFile",
-          "when": "view == remoteFileManagerView && (viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
-          "group": "navigation@1"
-        },
-        {
-          "command": "remoteFileManager.createFolder",
-          "when": "view == remoteFileManagerView && (viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(directory|connection).*$/",
           "group": "navigation@2"
         },
         {
+          "command": "remoteFileManager.createFolder",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(directory|connection).*$/",
+          "group": "navigation@3"
+        },
+        {
           "command": "remoteFileManager.cutNode",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
           "group": "1_clipboard@1"
         },
         {
           "command": "remoteFileManager.copyNode",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
           "group": "1_clipboard@2"
         },
         {
           "command": "remoteFileManager.pasteNode",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
+          "when": "view == remoteFileManagerView",
           "group": "1_clipboard@3"
         },
         {
           "command": "remoteFileManager.renameNode",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
           "group": "2_modification@1"
         },
         {
           "command": "remoteFileManager.deleteNode",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
           "group": "2_modification@2"
         },
         {
           "command": "remoteFileManager.uploadFiles",
-          "when": "view == remoteFileManagerView && (viewItem == directory || viewItem == directory.readonly || viewItem == connection || viewItem == connection.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(directory|connection).*$/",
           "group": "3_transfer@1"
         },
         {
           "command": "remoteFileManager.download",
-          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
           "group": "3_transfer@2"
         },
         {
           "command": "remoteFileManager.search",
-          "when": "view == remoteFileManagerView && (viewItem == connection || viewItem == connection.readonly || viewItem == directory || viewItem == directory.readonly || viewItem == file || viewItem == file.readonly)",
+          "when": "view == remoteFileManagerView",
           "group": "4_terminal@0"
         },
         {
           "command": "remoteFileManager.openTerminal",
-          "when": "view == remoteFileManagerView && (viewItem == connection || viewItem == directory || viewItem == directory.readonly || viewItem == file || viewItem == file.readonly)",
+          "when": "view == remoteFileManagerView",
           "group": "4_terminal@1"
         }
       ],

@@ -309,13 +309,20 @@ export class RemoteTreeDataProvider implements vscode.TreeDataProvider<RemoteNod
     const mapped: RemoteNode[] = entries.map((entry) => {
       const path = joinPath(element.path, entry.name);
       this.setCachedWritable(element.connectionId, path, entry.writable);
+      const prefix = entry.isSymbolicLink
+        ? entry.isBrokenSymbolicLink
+          ? "🔗 ⚠️ "
+          : "🔗 "
+        : "";
       return {
         connectionId: element.connectionId,
-        label: entry.name,
+        label: `${prefix}${entry.name}`,
         path,
         type: entry.isDirectory ? "directory" : "file",
         icon: entry.isDirectory ? "folder" : "file-code",
         writable: entry.writable,
+        isSymbolicLink: entry.isSymbolicLink,
+        isBrokenSymbolicLink: entry.isBrokenSymbolicLink,
       };
     });
 
@@ -332,8 +339,11 @@ export class RemoteTreeDataProvider implements vscode.TreeDataProvider<RemoteNod
     );
 
     item.id = `${element.connectionId}:${element.type}:${element.path}`;
+    const contextType = element.isSymbolicLink
+      ? `${element.type}.symlink`
+      : element.type;
     item.contextValue =
-      element.writable === false ? `${element.type}.readonly` : element.type;
+      element.writable === false ? `${contextType}.readonly` : contextType;
     if (element.writable !== undefined) {
       item.tooltip = element.writable ? "Writable" : "Read-only";
     }

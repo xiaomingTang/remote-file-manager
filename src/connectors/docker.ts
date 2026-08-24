@@ -61,8 +61,14 @@ export class DockerConnector implements IRemoteConnector {
         "sh",
         "-lc",
         `for entry in ${this.quote(target)}/* ${this.quote(target)}/.[!.]* ${this.quote(target)}/..?*; do
-          [ -e "$entry" ] || continue
+          [ -e "$entry" ] || [ -L "$entry" ] || continue
           name=\${entry##*/}
+          is_link=false
+          broken=false
+          if [ -L "$entry" ]; then
+            is_link=true
+            [ -e "$entry" ] || broken=true
+          fi
           if [ -d "$entry" ]; then
             kind=dir
           else
@@ -73,7 +79,7 @@ export class DockerConnector implements IRemoteConnector {
           else
             writable=false
           fi
-          printf '%s\\t%s\\t%s\\n' "$kind" "$writable" "$name"
+          printf '%s\\t%s\\t%s\\t%s\\t%s\\n' "$kind" "$writable" "$is_link" "$broken" "$name"
         done`,
       ],
       { maxBuffer: 50 * 1024 * 1024 },
@@ -83,11 +89,19 @@ export class DockerConnector implements IRemoteConnector {
       .split(/\r?\n/)
       .filter(Boolean)
       .map((line) => {
-        const [kind, writable, ...nameParts] = line.split("\t");
+        const [
+          kind,
+          writable,
+          isSymbolicLink,
+          isBrokenSymbolicLink,
+          ...nameParts
+        ] = line.split("\t");
         return {
           name: nameParts.join("\t"),
           isDirectory: kind === "dir",
           writable: writable === "true",
+          isSymbolicLink: isSymbolicLink === "true",
+          isBrokenSymbolicLink: isBrokenSymbolicLink === "true",
         };
       });
   }
@@ -107,7 +121,7 @@ export class DockerConnector implements IRemoteConnector {
         this.container,
         "sh",
         "-lc",
-        `find ${this.quote(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d \\) -iname ${this.quote(pattern)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
+        `find ${this.quote(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d -o -type l \\) -iname ${this.quote(pattern)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
       ],
       { maxBuffer: 10 * 1024 * 1024 },
     );
@@ -117,9 +131,11 @@ export class DockerConnector implements IRemoteConnector {
       .filter(Boolean)
       .map((line) => {
         const separatorIndex = line.indexOf("\t");
+        const kind = line.slice(0, separatorIndex);
         return {
-          isDirectory: line.slice(0, separatorIndex) === "d",
+          isDirectory: kind === "d",
           path: line.slice(separatorIndex + 1),
+          isSymbolicLink: kind === "l",
         };
       });
   }

@@ -13,6 +13,8 @@ export interface SearchResult {
   name: string;
   path: string;
   isDirectory: boolean;
+  isSymbolicLink?: boolean;
+  isBrokenSymbolicLink?: boolean;
 }
 
 export interface SearchTemplateConnection {
@@ -94,15 +96,35 @@ export async function search(
     excludePatterns: options.excludePatterns,
   });
 
-  return sortSearchResults(
-    paths.map(({ path, isDirectory }: RemoteSearchResult) => ({
-      connectionId: options.connectionId,
-      name: basename(path),
-      path,
-      isDirectory,
-    })),
-    searchValue,
+  const results = await Promise.all(
+    paths.map(async (result: RemoteSearchResult) => {
+      let isDirectory = result.isDirectory;
+      let isBrokenSymbolicLink = result.isBrokenSymbolicLink;
+      if (result.isSymbolicLink) {
+        try {
+          isDirectory = (await connector.statPath(result.path)).isDirectory;
+        } catch {
+          isDirectory = false;
+          isBrokenSymbolicLink = true;
+        }
+      }
+      const prefix = result.isSymbolicLink
+        ? isBrokenSymbolicLink
+          ? "🔗 ⚠️ "
+          : "🔗 "
+        : "";
+      return {
+        connectionId: options.connectionId,
+        name: `${prefix}${basename(result.path)}`,
+        path: result.path,
+        isDirectory,
+        isSymbolicLink: result.isSymbolicLink,
+        isBrokenSymbolicLink,
+      };
+    }),
   );
+
+  return sortSearchResults(results, searchValue);
 }
 
 export function createSearchHtml(options: CreateSearchHtmlOptions): string {

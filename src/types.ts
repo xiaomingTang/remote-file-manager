@@ -84,6 +84,8 @@ export interface RemoteNode {
   readonly type: RemoteKind;
   readonly icon: string;
   readonly writable?: boolean;
+  readonly isSymbolicLink?: boolean;
+  readonly isBrokenSymbolicLink?: boolean;
 }
 
 export interface ConnectionHealth {
@@ -96,6 +98,8 @@ export interface RemoteEntry {
   name: string;
   isDirectory: boolean;
   writable: boolean;
+  isSymbolicLink?: boolean;
+  isBrokenSymbolicLink?: boolean;
 }
 
 export interface RemoteSearchOptions {
@@ -108,6 +112,8 @@ export interface RemoteSearchOptions {
 export interface RemoteSearchResult {
   path: string;
   isDirectory: boolean;
+  isSymbolicLink?: boolean;
+  isBrokenSymbolicLink?: boolean;
 }
 
 export interface RemoteStat {

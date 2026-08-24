@@ -471,7 +471,7 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   const applyRename = async (node: RemoteNode): Promise<void> => {
-    const currentName = node.label;
+    const currentName = basename(node.path);
     const nextName = await vscode.window.showInputBox({
       prompt: `Rename ${currentName}`,
       value: currentName,
@@ -910,6 +910,35 @@ export function activate(context: vscode.ExtensionContext): void {
           );
         } finally {
           treeProvider.loading.clear(node);
+        }
+      },
+    ),
+    vscode.commands.registerCommand(
+      "remoteFileManager.locateTarget",
+      async (node?: RemoteNode) => {
+        const target = resolveTreeCommandNode(node, treeView.selection);
+        if (!target?.isSymbolicLink) {
+          return;
+        }
+
+        try {
+          const connector = await fileOperations.getConnector(
+            target.connectionId,
+          );
+          const stats = await connector.statPath(target.path);
+          if (!stats.linkTarget) {
+            void vscode.window.showWarningMessage(
+              `Unable to locate the target of ${target.label}: broken symbolic link`,
+            );
+            return;
+          }
+          await revealRemoteUri(
+            toVirtualUri(target.connectionId, stats.linkTarget),
+          );
+        } catch (error) {
+          void vscode.window.showErrorMessage(
+            `Unable to locate the target of ${target.label}: ${msg(error)}`,
+          );
         }
       },
     ),
