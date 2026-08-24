@@ -246,21 +246,6 @@
       ],
       "view/item/context": [
         {
-          "command": "remoteFileManager.locateTarget",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory)\\.symlink(\\.readonly)?$/",
-          "group": "navigation@0"
-        },
-        {
-          "command": "remoteFileManager.editWithDiff",
-          "when": "view == remoteFileManagerView && viewItem =~ /^file.*$/",
-          "group": "2_modification@0"
-        },
-        {
-          "command": "remoteFileManager.getInfo",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
-          "group": "navigation@1"
-        },
-        {
           "command": "remoteFileManager.showReadonlyStatus",
           "when": "view == remoteFileManagerView && viewItem =~ /^.*\\.readonly.*$/",
           "group": "inline"
@@ -268,57 +253,72 @@
         {
           "command": "remoteFileManager.createFile",
           "when": "view == remoteFileManagerView && viewItem =~ /^(directory|connection).*$/",
-          "group": "navigation@2"
+          "group": "1_creation@0"
         },
         {
           "command": "remoteFileManager.createFolder",
           "when": "view == remoteFileManagerView && viewItem =~ /^(directory|connection).*$/",
-          "group": "navigation@3"
-        },
-        {
-          "command": "remoteFileManager.cutNode",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
-          "group": "1_clipboard@1"
-        },
-        {
-          "command": "remoteFileManager.copyNode",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
-          "group": "1_clipboard@2"
-        },
-        {
-          "command": "remoteFileManager.pasteNode",
-          "when": "view == remoteFileManagerView",
-          "group": "1_clipboard@3"
-        },
-        {
-          "command": "remoteFileManager.renameNode",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
-          "group": "2_modification@1"
-        },
-        {
-          "command": "remoteFileManager.deleteNode",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
-          "group": "2_modification@2"
-        },
-        {
-          "command": "remoteFileManager.uploadFiles",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(directory|connection).*$/",
-          "group": "3_transfer@1"
-        },
-        {
-          "command": "remoteFileManager.download",
-          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
-          "group": "3_transfer@2"
+          "group": "1_creation@1"
         },
         {
           "command": "remoteFileManager.search",
           "when": "view == remoteFileManagerView",
-          "group": "4_terminal@0"
+          "group": "2_navigation@0"
+        },
+        {
+          "command": "remoteFileManager.getInfo",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "2_navigation@1"
+        },
+        {
+          "command": "remoteFileManager.locateTarget",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory)\\.symlink(\\.readonly)?$/",
+          "group": "2_navigation@2"
+        },
+        {
+          "command": "remoteFileManager.cutNode",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "3_clipboard@1"
+        },
+        {
+          "command": "remoteFileManager.copyNode",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "3_clipboard@2"
+        },
+        {
+          "command": "remoteFileManager.pasteNode",
+          "when": "view == remoteFileManagerView",
+          "group": "3_clipboard@3"
+        },
+        {
+          "command": "remoteFileManager.editWithDiff",
+          "when": "view == remoteFileManagerView && viewItem =~ /^file.*$/",
+          "group": "4_modification@0"
+        },
+        {
+          "command": "remoteFileManager.renameNode",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "4_modification@1"
+        },
+        {
+          "command": "remoteFileManager.deleteNode",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "4_modification@2"
+        },
+        {
+          "command": "remoteFileManager.uploadFiles",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(directory|connection).*$/",
+          "group": "5_transfer@0"
+        },
+        {
+          "command": "remoteFileManager.download",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "5_transfer@1"
         },
         {
           "command": "remoteFileManager.openTerminal",
           "when": "view == remoteFileManagerView",
-          "group": "4_terminal@1"
+          "group": "6_terminal@0"
         }
       ],
       "commandPalette": [
