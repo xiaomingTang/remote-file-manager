@@ -230,6 +230,18 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
 
+  const revealRemoteUri = async (uri: vscode.Uri): Promise<void> => {
+    if (uri.scheme !== "remote-file-manager") {
+      return;
+    }
+
+    const path = decodeRemotePath(uri);
+    const parentPath = dirname(path);
+    const parent = treeProvider.getDirectoryNode(uri.authority, parentPath);
+    await treeProvider.revealExpanded(parent);
+    await treeProvider.selectNode(uri.authority, parentPath, path, parent);
+  };
+
   const openSearch = async (node?: RemoteNode): Promise<void> => {
     const target = resolveTreeCommandNode(node, treeView.selection);
     const definitions = connectionManager.getDefinitions();
@@ -834,6 +846,20 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("remoteFileManager.search", openSearch),
     vscode.commands.registerCommand(
+      "revealInExplorer",
+      async (uri?: vscode.Uri) => {
+        const resource = uri ?? vscode.window.activeTextEditor?.document.uri;
+        if (resource?.scheme === "remote-file-manager") {
+          await revealRemoteUri(resource);
+          return;
+        }
+
+        await vscode.commands.executeCommand(
+          "workbench.files.action.showActiveFileInExplorer",
+        );
+      },
+    ),
+    vscode.commands.registerCommand(
       "remoteFileManager.editWithDiff",
       async (node?: RemoteNode) => {
         if (!node || node.type !== "file") {
@@ -1068,22 +1094,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 typeof message.uri === "string"
               ) {
                 const originUri = vscode.Uri.parse(message.uri);
-                const originPath = decodeRemotePath(originUri);
-                const originParentPath = dirname(originPath);
-                void treeProvider
-                  .revealExpanded(
-                    treeProvider.getDirectoryNode(
-                      originUri.authority,
-                      originParentPath,
-                    ),
-                  )
-                  .then(() =>
-                    treeProvider.selectNode(
-                      originUri.authority,
-                      originParentPath,
-                      originPath,
-                    ),
-                  );
+                void revealRemoteUri(originUri);
               }
             });
             infoPanel.onDidDispose(() => {
