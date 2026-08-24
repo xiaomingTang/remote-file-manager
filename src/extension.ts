@@ -39,6 +39,7 @@ type TreeClipboardAction = "cut" | "copy";
 
 const INFO_PANEL_GROUP_RATIO = 0.3;
 const SEARCH_PANEL_GROUP_RATIO = 0.4;
+const TREE_FILE_DOUBLE_CLICK_INTERVAL_MS = 300;
 
 interface TreeClipboardState {
   action: TreeClipboardAction;
@@ -84,6 +85,8 @@ export function activate(context: vscode.ExtensionContext): void {
   let infoPanel: vscode.WebviewPanel | undefined;
   let infoRequestId = 0;
   let searchPanel: vscode.WebviewPanel | undefined;
+  let lastOpenedFile:
+    { connectionId: string; path: string; timestamp: number } | undefined;
   const getOutermostEditorColumn = (
     edge: "left" | "right",
   ): vscode.ViewColumn => {
@@ -833,8 +836,19 @@ export function activate(context: vscode.ExtensionContext): void {
         treeProvider.loading.set(node, 200);
         try {
           const uri = toVirtualUri(node.connectionId, node.path);
+          const now = Date.now();
+          const isDoubleClick =
+            lastOpenedFile?.connectionId === node.connectionId &&
+            lastOpenedFile.path === node.path &&
+            now - lastOpenedFile.timestamp <=
+              TREE_FILE_DOUBLE_CLICK_INTERVAL_MS;
+          lastOpenedFile = {
+            connectionId: node.connectionId,
+            path: node.path,
+            timestamp: now,
+          };
           await vscode.commands.executeCommand("vscode.open", uri, {
-            preview: true,
+            preview: !isDoubleClick,
             viewColumn: vscode.ViewColumn.Active,
             preserveFocus: true,
           });
