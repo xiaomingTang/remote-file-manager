@@ -29,6 +29,8 @@ Create a tag whose version matches the release, for example `v0.1.2`. GitHub Act
 
 Before creating the tag, add a Visual Studio Marketplace Personal Access Token as the repository secret `VSCE_PAT`.
 
+See [CHANGELOG.md](./CHANGELOG.md) for the release history.
+
 ## Example settings
 
 ```json
