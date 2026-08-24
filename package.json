@@ -144,6 +144,12 @@
         "title": "Open File"
       },
       {
+        "command": "remoteFileManager.editWithDiff",
+        "title": "Edit with Diff",
+        "category": "Remote File Manager",
+        "icon": "$(git-compare)"
+      },
+      {
         "command": "remoteFileManager.showReadonlyStatus",
         "title": "Read-only",
         "icon": "$(lock)"
@@ -232,6 +238,11 @@
         }
       ],
       "view/item/context": [
+        {
+          "command": "remoteFileManager.editWithDiff",
+          "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly)",
+          "group": "2_modification@0"
+        },
         {
           "command": "remoteFileManager.getInfo",
           "when": "view == remoteFileManagerView && (viewItem == file || viewItem == file.readonly || viewItem == directory || viewItem == directory.readonly)",

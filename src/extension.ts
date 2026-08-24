@@ -34,6 +34,7 @@ import {
 } from "./constants";
 import { createInfoHtml, getInfoTitle } from "./services/info";
 import { createSearchHtml, search, SearchOptions } from "./services/search";
+import { DIFF_SCHEME, RemoteDiffManager } from "./services/diff";
 
 type TreeClipboardAction = "cut" | "copy";
 
@@ -79,6 +80,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const fileSystemProvider = new RemoteFileManagerFileSystemProvider(
     connectionManager,
   );
+  const diffManager = new RemoteDiffManager(connectionManager);
   const fileOperations = new RemoteFileOperations(connectionManager);
   const trashManager = new TrashManager();
   let clipboardState: TreeClipboardState | undefined;
@@ -809,9 +811,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     connectionManager,
+    diffManager,
     vscode.workspace.registerFileSystemProvider(
       "remote-file-manager",
       fileSystemProvider,
+    ),
+    vscode.workspace.registerTextDocumentContentProvider(
+      DIFF_SCHEME,
+      diffManager,
     ),
     treeView,
     vscode.commands.registerCommand("remoteFileManager.refresh", () => {
@@ -826,6 +833,25 @@ export function activate(context: vscode.ExtensionContext): void {
       openRemoteTerminal,
     ),
     vscode.commands.registerCommand("remoteFileManager.search", openSearch),
+    vscode.commands.registerCommand(
+      "remoteFileManager.editWithDiff",
+      async (node?: RemoteNode) => {
+        if (!node || node.type !== "file") {
+          return;
+        }
+
+        treeProvider.loading.set(node, 200);
+        try {
+          await diffManager.open(node);
+        } catch (error) {
+          void vscode.window.showErrorMessage(
+            `Unable to open diff for ${node.path}: ${msg(error)}`,
+          );
+        } finally {
+          treeProvider.loading.clear(node);
+        }
+      },
+    ),
     vscode.commands.registerCommand(
       "remoteFileManager.openFile",
       async (node?: RemoteNode) => {
