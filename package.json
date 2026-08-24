@@ -294,7 +294,7 @@
         },
         {
           "command": "remoteFileManager.openTerminal",
-          "when": "view == remoteFileManagerView && (viewItem == connection || viewItem == directory || viewItem == directory.readonly)",
+          "when": "view == remoteFileManagerView && (viewItem == connection || viewItem == directory || viewItem == directory.readonly || viewItem == file || viewItem == file.readonly)",
           "group": "4_terminal@1"
         }
       ],

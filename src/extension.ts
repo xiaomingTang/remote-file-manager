@@ -204,10 +204,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const openRemoteTerminal = async (node?: RemoteNode): Promise<void> => {
     const target = resolveTreeCommandNode(node, treeView.selection);
-    if (
-      !target ||
-      (target.type !== "connection" && target.type !== "directory")
-    ) {
+    if (!target || !["connection", "directory", "file"].includes(target.type)) {
       return;
     }
 
@@ -219,7 +216,10 @@ export function activate(context: vscode.ExtensionContext): void {
         );
       }
 
-      const terminal = createRemoteTerminal(definition, target.path);
+      const terminal = createRemoteTerminal(
+        definition,
+        target.type === "file" ? dirname(target.path) : target.path,
+      );
       terminal.show();
     } catch (error) {
       void vscode.window.showErrorMessage(
