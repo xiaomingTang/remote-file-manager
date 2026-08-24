@@ -4,6 +4,12 @@ A lightweight VS Code extension that lets you browse and edit files from Docker 
 
 [vscode marketplace](https://marketplace.visualstudio.com/items?itemName=xiaoming110.remote-file-manager)
 
+latest screenshot:
+
+![context-menu.png](./static/context-menu.png)
+
+screen recording:
+
 ![demo.gif](./static/demo.gif)
 
 ## Features
