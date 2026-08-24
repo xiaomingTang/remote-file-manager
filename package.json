@@ -129,13 +129,13 @@
       },
       {
         "command": "remoteFileManager.search",
-        "title": "Search Files",
+        "title": "🔍 Search Files",
         "category": "Remote File Manager",
         "icon": "$(search)"
       },
       {
         "command": "remoteFileManager.openTerminal",
-        "title": "Open Remote Terminal",
+        "title": "💻 Open Remote Terminal",
         "category": "Remote File Manager",
         "icon": "$(terminal)"
       },
@@ -156,14 +156,14 @@
       },
       {
         "command": "remoteFileManager.createFile",
-        "title": "New File",
+        "title": "📄 New File",
         "category": "Remote File Manager",
         "icon": "$(new-file)",
         "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
       },
       {
         "command": "remoteFileManager.createFolder",
-        "title": "New Folder",
+        "title": "📁 New Folder",
         "category": "Remote File Manager",
         "icon": "$(new-folder)",
         "enablement": "viewItem != directory.readonly && viewItem != connection.readonly"
@@ -177,7 +177,7 @@
       },
       {
         "command": "remoteFileManager.getInfo",
-        "title": "Get Info",
+        "title": "ℹ️ Get Info",
         "category": "Remote File Manager"
       },
       {
