@@ -307,7 +307,7 @@ export function activate(context: vscode.ExtensionContext): void {
         "remoteFileManager.search",
         "Search Files",
         searchColumn,
-        { enableScripts: true },
+        { enableScripts: true, retainContextWhenHidden: true },
       );
       if (!reuseExistingGroup) {
         await resizeSearchPanel();
