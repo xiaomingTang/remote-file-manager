@@ -3,7 +3,7 @@
   "displayName": "Remote File Manager",
   "description": "Browse and edit remote files from Docker or SSH without a remote VS Code server.",
   "icon": "images/cloud.png",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "xiaoming110",
   "license": "MIT",
   "main": "./dist/extension.js",
