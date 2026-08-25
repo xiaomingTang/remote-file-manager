@@ -1005,7 +1005,14 @@ export function activate(context: vscode.ExtensionContext): void {
           );
           const path = joinPath(node.path, name.trim());
           await connector.createFile(path);
+          await treeProvider.revealExpanded(node);
           await treeProvider.refresh();
+          await treeProvider.selectNode(
+            node.connectionId,
+            node.path,
+            path,
+            node,
+          );
         } catch (error) {
           void vscode.window.showErrorMessage(
             `Unable to create file ${name.trim()} in ${node.path}: ${msg(error)}`,
@@ -1042,7 +1049,14 @@ export function activate(context: vscode.ExtensionContext): void {
             connectionId: node.connectionId,
             path,
           });
+          await treeProvider.revealExpanded(node);
           await treeProvider.refresh();
+          await treeProvider.selectNode(
+            node.connectionId,
+            node.path,
+            path,
+            node,
+          );
         } catch (error) {
           void vscode.window.showErrorMessage(
             `Unable to create folder ${name.trim()} in ${node.path}: ${msg(error)}`,
