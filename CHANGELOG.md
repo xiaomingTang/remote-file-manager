@@ -2,12 +2,13 @@
 
 All notable user-facing changes to Remote File Manager are documented here.
 
-## [0.1.2] - Unreleased
+## [0.1.2]
 
 ### Added
 
 - Added side-by-side diff editing for remote files, allowing a remote file to be compared with and edited alongside a local or remote version.
-- Added support for revealing remote files and directories in the Remote Files tree from VS Code's native editor title action.
+- Reorganize context menu commands
+- Add symlink support
 
 ## [0.1.1]
 
