@@ -9,10 +9,19 @@
       color-scheme: light dark;
     }
 
+    html,
     body {
+      height: 100%;
+    }
+
+    body {
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
       max-width: 900px;
       min-width: 360px;
-      padding: 28px 32px;
+      margin: 0;
+      padding: 8px 24px;
       color: var(--vscode-foreground);
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
@@ -21,7 +30,7 @@
     h1 {
       font-size: 1.4em;
       font-weight: 600;
-      margin: 0 0 24px;
+      margin: 0 0 16px;
     }
 
     label {
@@ -46,9 +55,18 @@
     }
 
     #connection {
-      width: 30%;
-      min-width: 180px;
+      width: 100%;
       padding: 7px 9px;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 16px;
+    }
+
+    .field {
+      flex: 1 1 0;
+      min-width: 0;
     }
 
     .search-input {
@@ -156,10 +174,19 @@
       cursor: pointer;
     }
 
-    .actions {
+    .search-row {
       display: flex;
+      align-items: flex-end;
       gap: 8px;
-      margin-top: 18px;
+    }
+
+    .search-row .field {
+      flex-grow: 1;
+    }
+
+    #search {
+      flex-shrink: 0;
+      padding: 7px 12px;
     }
 
     button {
@@ -177,18 +204,23 @@
     }
 
     .summary {
-      margin: 24px 0 10px;
+      margin: 16px 0 8px;
       color: var(--vscode-descriptionForeground);
     }
 
     .result-columns {
       display: grid;
+      flex-grow: 1;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
+      min-height: 400px;
     }
 
     .result-section {
+      display: flex;
+      flex-direction: column;
       min-width: 0;
+      min-height: 0;
     }
 
     .result-section h2 {
@@ -204,7 +236,7 @@
     }
 
     .results {
-      max-height: 45vh;
+      flex-grow: 1;
       margin: 0;
       padding: 0;
       overflow: auto;
@@ -249,21 +281,22 @@
 <body>
   <h1>Search Files and Directories</h1>
   <form id="searchForm">
-    <label for="connection">Search in</label>
-    <select id="connection">
-      <% connections.forEach((connection)=> { %>
-        <option value="<%= connection.id %>" <%=connection.id===defaultConnectionId ? "selected" : "" %>><%=
-            connection.id %>
-        </option>
-        <% }); %>
-    </select>
-    <label for="value">File name</label>
-    <div class="search-input">
-      <input id="value" type="text" value="<%= defaultValue %>" autofocus />
-      <button class="clear" id="clear" type="button" title="Clear search" aria-label="Clear search">&#10005;</button>
+    <div class="field-row">
+      <div class="field">
+        <label for="connection">Search in</label>
+        <select id="connection">
+          <% connections.forEach((connection)=> { %>
+            <option value="<%= connection.id %>" <%=connection.id===defaultConnectionId ? "selected" : "" %>><%=
+                connection.id %>
+            </option>
+            <% }); %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="directory">Search directory</label>
+        <input id="directory" type="text" value="<%= defaultSearchDirectory %>" />
+      </div>
     </div>
-    <label for="directory">Search directory</label>
-    <input id="directory" type="text" value="<%= defaultSearchDirectory %>" />
     <label for="excludePatterns">Exclude patterns
       <span class="help" id="excludeHelp">
         <button class="help-button" id="helpButton" type="button" title="Show pattern examples"
@@ -303,7 +336,15 @@
         aria-label="Use default exclude patterns" aria-pressed="<%= useDefaultExcludePatterns %>"><span
           class="filter-icon" aria-hidden="true"></span></button>
     </div>
-    <div class="actions">
+    <div class="search-row">
+      <div class="field">
+        <label for="value">Name</label>
+        <div class="search-input">
+          <input id="value" type="text" value="<%= defaultValue %>" autofocus />
+          <button class="clear" id="clear" type="button" title="Clear search"
+            aria-label="Clear search">&#10005;</button>
+        </div>
+      </div>
       <button id="search" type="submit">Search</button>
     </div>
   </form>
