@@ -20,14 +20,18 @@ src/
 |   |-- docker.ts      // Docker connector implementation.
 |   |-- factory.ts     // Connector factory abstractions.
 |   |-- ssh-cli.ts     // SSH command-line argument and shell helpers.
-|   `-- ssh.ts         // SSH connector implementation.
+|   |-- ssh.ts         // SSH connector implementation.
+|   `-- wsl.ts         // WSL connector implementation.
 |-- providers/
 |   |-- fs.ts          // `remote-file-manager://` virtual file system provider.
 |   `-- tree.ts        // Remote file tree provider and drag-and-drop support.
 |-- services/
+|   |-- diff.ts             // Remote file diff handling.
 |   |-- download.ts         // Remote download operations.
 |   |-- file-operations.ts  // Remote file and directory operations.
+|   |-- info.ejs            // Information panel template.
 |   |-- info.ts             // Remote item information panel.
+|   |-- search.ejs          // Search panel template.
 |   |-- search.ts           // Remote file search panel and operations.
 |   |-- terminal.ts         // Remote terminal creation.
 |   |-- transfer.ts         // Cross-connection transfer operations.
@@ -89,6 +93,7 @@ For extension behavior, launch the extension in the VS Code Extension Developmen
 ## Change Scope
 
 - Make focused changes in `src/` and add or update a nearby test in `test/` for behavior changes.
+- When code is added, removed, renamed, or reorganized, check the `Repository Layout` above and update this `AGENTS.md` whenever it no longer matches the repository.
 - Do not commit generated `dist/` output, `.vsix` files, logs, or `node_modules/`; these are ignored or generated artifacts.
 - Preserve unrelated working-tree changes. Do not use destructive Git commands such as `git reset --hard` or `git checkout --` to clean the workspace.
 - Update `README.md` when a user-visible command, configuration format, setup step, or release workflow changes.
