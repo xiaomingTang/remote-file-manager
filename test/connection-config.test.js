@@ -11,6 +11,17 @@ let workspaceGetConfigurationCount = 0;
 const configurationChangeListeners = new Set();
 const originalLoad = Module._load;
 Module._load = function patchedLoad(request, parent, isMain) {
+  if (
+    request === "./search.ejs" &&
+    parent?.filename?.endsWith("/dist/services/search.js")
+  ) {
+    return "";
+  }
+
+  if (request === "ejs") {
+    return { render: () => "" };
+  }
+
   if (request === "vscode") {
     class MockEventEmitter {
       constructor() {
@@ -117,6 +128,7 @@ const {
   RemoteFileManagerFileSystemProvider,
 } = require("../dist/providers/fs.js");
 const { copyPathAcrossConnections } = require("../dist/services/transfer.js");
+const { search } = require("../dist/services/search.js");
 const { TrashManager } = require("../dist/services/trash.js");
 const {
   canDropIntoTarget,
@@ -387,6 +399,30 @@ test("cached configuration document refreshes when settings change", () => {
   manager.dispose();
 });
 
+test("search ranks an exact filename above a filename with an extra extension", async () => {
+  const connectionManager = {
+    getDefinition: () => ({ path: "/workspace" }),
+    getConnectorOrThrow: () => ({
+      searchFiles: async () => [
+        { path: "/workspace/readme.md.gz", isDirectory: false },
+        { path: "/workspace/readme.md", isDirectory: false },
+      ],
+    }),
+  };
+
+  const results = await search(connectionManager, {
+    connectionId: "ssh-1",
+    searchDirectory: "/workspace",
+    searchValue: "readme.md",
+    excludePatterns: [],
+  });
+
+  assert.deepEqual(
+    results.map((result) => result.path),
+    ["/workspace/readme.md", "/workspace/readme.md.gz"],
+  );
+});
+
 test("resolveDropTargetPath keeps the dragged item name under the target directory", () => {
   assert.equal(
     resolveDropTargetPath("/workspace/app/config.json", "/workspace/app"),
@@ -566,10 +602,7 @@ test("paste menu disables when clipboard is empty", () => {
     (entry) => entry.command === "remoteFileManager.pasteNode",
   );
 
-  assert.match(
-    pasteCommand.enablement,
-    /remoteFileManager.clipboardAvailable/,
-  );
+  assert.match(pasteCommand.enablement, /remoteFileManager.clipboardAvailable/);
 });
 
 test("connection root paste is not shown in the tree title", () => {
@@ -596,10 +629,7 @@ test("connection items support paste from the tree context menu", () => {
   );
 
   assert.match(pasteMenu.when, /viewItem == connection/);
-  assert.match(
-    pasteCommand.enablement,
-    /remoteFileManager.clipboardAvailable/,
-  );
+  assert.match(pasteCommand.enablement, /remoteFileManager.clipboardAvailable/);
 });
 
 test("root paste has a keybinding", () => {

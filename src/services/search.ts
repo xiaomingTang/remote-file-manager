@@ -50,6 +50,10 @@ function sortSearchResults(
   const normalizedSearchValue = searchValue.toLocaleLowerCase();
 
   return results.slice().sort((left, right) => {
+    const leftFileName = basename(left.path).toLocaleLowerCase();
+    const rightFileName = basename(right.path).toLocaleLowerCase();
+    const leftExactMatch = leftFileName === normalizedSearchValue ? 0 : 1;
+    const rightExactMatch = rightFileName === normalizedSearchValue ? 0 : 1;
     const leftParts = getSearchNameParts(left.name);
     const rightParts = getSearchNameParts(right.name);
     const leftStem = leftParts.stem.toLocaleLowerCase();
@@ -62,6 +66,7 @@ function sortSearchResults(
       rightStem === normalizedSearchValue ? 0 : rightMatchIndex === 0 ? 1 : 2;
 
     return (
+      leftExactMatch - rightExactMatch ||
       leftMatchRank - rightMatchRank ||
       leftStem.length - rightStem.length ||
       leftStem.localeCompare(rightStem, undefined, { sensitivity: "base" }) ||
