@@ -274,7 +274,7 @@ export function activate(context: vscode.ExtensionContext): void {
       defaultValue: "",
       defaultExcludePatterns: context.globalState.get<string>(
         SEARCH_EXCLUDE_PATTERNS_STATE_KEY,
-        "/mnt",
+        "/mnt, /media",
       ),
       useDefaultExcludePatterns: context.globalState.get<boolean>(
         SEARCH_USE_DEFAULT_EXCLUDES_STATE_KEY,
