@@ -7,6 +7,7 @@ All notable user-facing changes to Remote File Manager are documented here.
 ### Changed
 
 - Reorganized the search page layout.
+- Made the maximum number of search results configurable through `remoteFileManager.connections.maxSearchFiles`, defaulting to 200.
 
 ## [0.1.2]
 
