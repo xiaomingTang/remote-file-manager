@@ -11,7 +11,10 @@ import { createConnector, getConnectionTargetName } from "./connectors/factory";
 import { DockerConnectorFactory } from "./connectors/docker";
 import { SSHConnectorFactory } from "./connectors/ssh";
 import { WSLConnectorFactory } from "./connectors/wsl";
-import { REMOTE_FILE_MANAGER_CONNECTIONS_CONFIG_KEY } from "./constants";
+import {
+  DEFAULT_MAX_SEARCH_FILES,
+  REMOTE_FILE_MANAGER_CONNECTIONS_CONFIG_KEY,
+} from "./constants";
 
 export class ConnectionManager implements vscode.Disposable {
   private readonly configurationChangeSubscription: vscode.Disposable;
@@ -68,6 +71,15 @@ export class ConnectionManager implements vscode.Disposable {
 
   getDefinition(connectionId: string): ConnectionConfigDef | undefined {
     return this.getDefinitions().find((item) => item.id === connectionId);
+  }
+
+  getMaxSearchFiles(): number {
+    const maxSearchFiles = this.connectionDocument.maxSearchFiles;
+    return typeof maxSearchFiles === "number" &&
+      Number.isInteger(maxSearchFiles) &&
+      maxSearchFiles > 0
+      ? maxSearchFiles
+      : DEFAULT_MAX_SEARCH_FILES;
   }
 
   getHealth(connectionId: string): ConnectionHealth {

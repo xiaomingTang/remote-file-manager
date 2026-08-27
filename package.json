@@ -334,6 +334,7 @@
         "remoteFileManager.connections": {
           "type": "object",
           "default": {
+            "maxSearchFiles": 200,
             "connections": {
               "docker": [],
               "ssh": [],
@@ -342,6 +343,12 @@
           },
           "description": "Remote connection definitions for Docker, SSH, and WSL2 targets.",
           "properties": {
+            "maxSearchFiles": {
+              "type": "number",
+              "minimum": 1,
+              "default": 200,
+              "description": "Maximum number of files returned by a remote file search. Defaults to 200."
+            },
             "connections": {
               "type": "object",
               "additionalProperties": false,

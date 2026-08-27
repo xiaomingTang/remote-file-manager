@@ -75,6 +75,7 @@ export interface ConnectionBucketByType {
 
 export interface RemoteFileManagerConnectionsDocument {
   connections: ConnectionBucketByType;
+  maxSearchFiles?: number;
 }
 
 export interface RemoteNode {

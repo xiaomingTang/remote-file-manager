@@ -97,7 +97,7 @@ export async function search(
   const paths = await connector.searchFiles({
     searchValue,
     searchDirectory,
-    limit: 200,
+    limit: connectionManager.getMaxSearchFiles(),
     excludePatterns: options.excludePatterns,
   });
 
