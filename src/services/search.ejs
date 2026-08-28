@@ -18,10 +18,11 @@
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
+      min-height: 0;
       max-width: 900px;
-      min-width: 360px;
       margin: 0;
       padding: 8px 24px;
+      overflow: hidden;
       color: var(--vscode-foreground);
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
@@ -64,6 +65,18 @@
       gap: 16px;
     }
 
+    @media (max-width: 349px) {
+      body {
+        padding-right: 12px;
+        padding-left: 12px;
+      }
+
+      .field-row {
+        flex-direction: column;
+        gap: 0;
+      }
+    }
+
     .field {
       flex: 1 1 0;
       min-width: 0;
@@ -89,7 +102,12 @@
     .icon-button {
       width: 32px;
       min-width: 32px;
+      height: 32px;
+      min-height: 32px;
       padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .filter-icon {
@@ -184,9 +202,70 @@
       flex-grow: 1;
     }
 
+    .search-actions {
+      display: flex;
+      gap: 8px;
+    }
+
     #search {
-      flex-shrink: 0;
-      padding: 7px 12px;
+      padding: 0;
+    }
+
+    .search-icon {
+      display: inline-block;
+      position: relative;
+      width: 8px;
+      height: 8px;
+      border: 1.5px solid currentColor;
+      border-radius: 50%;
+    }
+
+    .search-icon::after {
+      content: "";
+      position: absolute;
+      right: -4px;
+      bottom: -2px;
+      width: 5px;
+      height: 1.5px;
+      background: currentColor;
+      transform: rotate(45deg);
+      transform-origin: left center;
+    }
+
+    #search.searching .search-icon {
+      border-top-color: transparent;
+      animation: search-spin 0.8s linear infinite;
+    }
+
+    #search.searching .search-icon::after {
+      display: none;
+    }
+
+    @keyframes search-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .more-icon {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .more-icon-expanded {
+      display: none;
+    }
+
+    #toggleSearchOptions[aria-expanded="true"] .more-icon-collapsed {
+      display: none;
+    }
+
+    #toggleSearchOptions[aria-expanded="true"] .more-icon-expanded {
+      display: block;
     }
 
     button {
@@ -203,36 +282,63 @@
       cursor: default;
     }
 
+    .search-options[hidden] {
+      display: none;
+    }
+
+    .search-options {
+      margin-top: 4px;
+    }
+
     .summary {
       margin: 16px 0 8px;
       color: var(--vscode-descriptionForeground);
     }
 
+    .result-tabs {
+      display: flex;
+      margin-top: 8px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+    }
+
+    .result-tab {
+      flex: 1 1 0;
+      padding: 8px 12px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: var(--vscode-descriptionForeground);
+      background: transparent;
+      text-align: left;
+    }
+
+    .result-tab[aria-selected="true"] {
+      border-bottom-color: var(--vscode-focusBorder);
+      color: var(--vscode-foreground);
+      font-weight: 600;
+    }
+
+    .result-tab:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: -1px;
+    }
+
     .result-columns {
-      display: grid;
-      flex-grow: 1;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      min-height: 400px;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .result-section {
       display: flex;
       flex-direction: column;
+      height: 100%;
       min-width: 0;
       min-height: 0;
+      overflow: hidden;
     }
 
-    .result-section h2 {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      margin: 0;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      background: var(--vscode-editor-background);
-      font-size: 1em;
-      font-weight: 600;
+    .result-section[hidden] {
+      display: none;
     }
 
     .results {
@@ -277,65 +383,8 @@
     }
   </style>
 </head>
-
 <body>
-  <h1>Search Files and Directories</h1>
   <form id="searchForm">
-    <div class="field-row">
-      <div class="field">
-        <label for="connection">Search in</label>
-        <select id="connection">
-          <% connections.forEach((connection)=> { %>
-            <option value="<%= connection.id %>" <%=connection.id===defaultConnectionId ? "selected" : "" %>><%=
-                connection.id %>
-            </option>
-            <% }); %>
-        </select>
-      </div>
-      <div class="field">
-        <label for="directory">Search directory</label>
-        <input id="directory" type="text" value="<%= defaultSearchDirectory %>" />
-      </div>
-    </div>
-    <label for="excludePatterns">Exclude patterns
-      <span class="help" id="excludeHelp">
-        <button class="help-button" id="helpButton" type="button" title="Show pattern examples"
-          aria-label="Show pattern examples">?</button>
-        <span class="tooltip" role="tooltip">
-          <p>Patterns are relative to the search directory and separated with ",".</p>
-          <table>
-            <thead>
-              <tr>
-                <th>Pattern</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>**/node_modules</code></td>
-                <td>Ignores <code>node_modules</code> and its subdirectories at any level (default exclude).</td>
-              </tr>
-              <tr>
-                <td><code>dist/**/*.map</code></td>
-                <td>Relative pattern that ignores <code>.map</code> files at any level under <code>dist</code>.</td>
-              </tr>
-              <tr>
-                <td><code>app</code></td>
-                <td>Relative pattern that matches the complete <code>./app</code> path, whether it is a file or
-                  directory.</td>
-              </tr>
-            </tbody>
-          </table>
-        </span>
-      </span>
-    </label>
-    <div class="pattern-input">
-      <input id="excludePatterns" type="text" value="<%= defaultExcludePatterns %>"
-        placeholder='Relative patterns, separated with ","' />
-      <button class="icon-button" id="defaultExcludes" type="button" title="Use default exclude patterns"
-        aria-label="Use default exclude patterns" aria-pressed="<%= useDefaultExcludePatterns %>"><span
-          class="filter-icon" aria-hidden="true"></span></button>
-    </div>
     <div class="search-row">
       <div class="field">
         <label for="value">Name</label>
@@ -345,17 +394,93 @@
             aria-label="Clear search">&#10005;</button>
         </div>
       </div>
-      <button id="search" type="submit">Search</button>
+      <div class="search-actions">
+        <button class="icon-button" id="search" type="submit" title="Search" aria-label="Search">
+          <span class="search-icon" aria-hidden="true"></span>
+        </button>
+        <button class="icon-button" id="toggleSearchOptions" type="button" title="Show search options"
+          aria-label="Show search options" aria-expanded="false" aria-controls="searchOptions">
+          <svg class="more-icon more-icon-collapsed" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
+          </svg>
+          <svg class="more-icon more-icon-expanded" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 15L12 7L20 15" stroke-width="2" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="search-options" id="searchOptions" hidden>
+      <div class="field-row">
+        <div class="field">
+          <label for="connection">Search in</label>
+          <select id="connection">
+            <% connections.forEach((connection)=> { %>
+              <option value="<%= connection.id %>" <%=connection.id===defaultConnectionId ? "selected" : "" %>><%=
+                  connection.id %>
+              </option>
+              <% }); %>
+          </select>
+        </div>
+        <div class="field">
+          <label for="directory">Search directory</label>
+          <input id="directory" type="text" value="<%= defaultSearchDirectory %>" />
+        </div>
+      </div>
+      <label for="excludePatterns">Exclude patterns
+        <span class="help" id="excludeHelp">
+          <button class="help-button" id="helpButton" type="button" title="Show pattern examples"
+            aria-label="Show pattern examples">?</button>
+          <span class="tooltip" role="tooltip">
+            <p>Patterns are relative to the search directory and separated with ",".</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Pattern</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>**/node_modules</code></td>
+                  <td>Ignores <code>node_modules</code> and its subdirectories at any level (default exclude).</td>
+                </tr>
+                <tr>
+                  <td><code>dist/**/*.map</code></td>
+                  <td>Relative pattern that ignores <code>.map</code> files at any level under <code>dist</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>app</code></td>
+                  <td>Relative pattern that matches the complete <code>./app</code> path, whether it is a file or
+                    directory.</td>
+                </tr>
+              </tbody>
+            </table>
+          </span>
+        </span>
+      </label>
+      <div class="pattern-input">
+        <input id="excludePatterns" type="text" value="<%= defaultExcludePatterns %>"
+          placeholder='Relative patterns, separated with ","' />
+        <button class="icon-button" id="defaultExcludes" type="button" title="Use default exclude patterns"
+          aria-label="Use default exclude patterns" aria-pressed="<%= useDefaultExcludePatterns %>"><span
+            class="filter-icon" aria-hidden="true"></span></button>
+      </div>
     </div>
   </form>
   <div class="summary" id="summary" aria-live="polite"></div>
+  <div class="result-tabs" role="tablist" aria-label="Search results">
+    <button class="result-tab" id="filesTab" type="button" role="tab" aria-selected="true"
+      aria-controls="filesPanel">Files (0)</button>
+    <button class="result-tab" id="directoriesTab" type="button" role="tab" aria-selected="false"
+      aria-controls="directoriesPanel">Directories (0)</button>
+  </div>
   <div class="result-columns">
-    <section class="result-section" aria-labelledby="filesHeading">
-      <h2 id="filesHeading">Files (0)</h2>
+    <section class="result-section" id="filesPanel" role="tabpanel" aria-labelledby="filesTab">
       <ul class="results" id="filesResults"></ul>
     </section>
-    <section class="result-section" aria-labelledby="directoriesHeading">
-      <h2 id="directoriesHeading">Directories (0)</h2>
+    <section class="result-section" id="directoriesPanel" role="tabpanel" aria-labelledby="directoriesTab" hidden>
       <ul class="results" id="directoriesResults"></ul>
     </section>
   </div>
@@ -370,12 +495,36 @@
     const excludeHelp = document.getElementById("excludeHelp");
     const helpButton = document.getElementById("helpButton");
     const searchButton = document.getElementById("search");
+    const toggleSearchOptions = document.getElementById("toggleSearchOptions");
+    const searchOptions = document.getElementById("searchOptions");
     const clearButton = document.getElementById("clear");
     const summary = document.getElementById("summary");
-    const filesHeading = document.getElementById("filesHeading");
-    const directoriesHeading = document.getElementById("directoriesHeading");
+    const filesTab = document.getElementById("filesTab");
+    const directoriesTab = document.getElementById("directoriesTab");
+    const filesPanel = document.getElementById("filesPanel");
+    const directoriesPanel = document.getElementById("directoriesPanel");
     const filesResults = document.getElementById("filesResults");
     const directoriesResults = document.getElementById("directoriesResults");
+
+    function selectResultTab(tab) {
+      const filesSelected = tab === filesTab;
+      filesTab.setAttribute("aria-selected", String(filesSelected));
+      directoriesTab.setAttribute("aria-selected", String(!filesSelected));
+      filesPanel.hidden = !filesSelected;
+      directoriesPanel.hidden = filesSelected;
+    }
+
+    filesTab.addEventListener("click", () => selectResultTab(filesTab));
+    directoriesTab.addEventListener("click", () => selectResultTab(directoriesTab));
+    [filesTab, directoriesTab].forEach((tab) => {
+      tab.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        const nextTab = tab === filesTab ? directoriesTab : filesTab;
+        selectResultTab(nextTab);
+        nextTab.focus();
+      });
+    });
 
     function updateDefaultExcludesState() {
       const active = defaultExcludes.getAttribute("aria-pressed") === "true";
@@ -384,11 +533,19 @@
 
     updateDefaultExcludesState();
 
+    toggleSearchOptions.addEventListener("click", () => {
+      const expanded = toggleSearchOptions.getAttribute("aria-expanded") === "true";
+      toggleSearchOptions.setAttribute("aria-expanded", String(!expanded));
+      toggleSearchOptions.setAttribute("aria-label", `${expanded ? "Show" : "Hide"} search options`);
+      toggleSearchOptions.title = `${expanded ? "Show" : "Hide"} search options`;
+      searchOptions.hidden = expanded;
+    });
+
     function clearResults() {
       filesResults.replaceChildren();
       directoriesResults.replaceChildren();
-      filesHeading.textContent = "Files (0)";
-      directoriesHeading.textContent = "Directories (0)";
+      filesTab.textContent = "Files (0)";
+      directoriesTab.textContent = "Directories (0)";
     }
 
     value.focus();
@@ -402,7 +559,9 @@
         return;
       }
       searchButton.disabled = true;
-      searchButton.textContent = "Searching...";
+      searchButton.classList.add("searching");
+      searchButton.title = "Searching...";
+      searchButton.setAttribute("aria-label", "Searching...");
       summary.textContent = "";
       clearResults();
       vscode.postMessage({
@@ -463,7 +622,9 @@
     window.addEventListener("message", (event) => {
       const message = event.data;
       searchButton.disabled = false;
-      searchButton.textContent = "Search";
+      searchButton.classList.remove("searching");
+      searchButton.title = "Search";
+      searchButton.setAttribute("aria-label", "Search");
       if (message.type === "connection-default") {
         directory.value = message.searchDirectory;
         return;
@@ -484,8 +645,8 @@
       summary.textContent = "";
       const fileCount = message.results.filter((result) => !result.isDirectory).length;
       const directoryCount = message.results.length - fileCount;
-      filesHeading.textContent = `Files (${fileCount})`;
-      directoriesHeading.textContent = `Directories (${directoryCount})`;
+      filesTab.textContent = `Files (${fileCount})`;
+      directoriesTab.textContent = `Directories (${directoryCount})`;
       message.results.forEach((result) => {
         const item = document.createElement("li");
         item.className = "result";
