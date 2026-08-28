@@ -4,7 +4,8 @@ All notable user-facing changes to Remote File Manager are documented here.
 
 ## [0.1.4] - Unreleased
 
-- update search page layout and ui/ux
+- update search page layout
+- enable anchored name searches with ^ and $
 
 ## [0.1.3]
 
