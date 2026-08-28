@@ -51,7 +51,7 @@
       "activitybar": [
         {
           "id": "remoteFileManager",
-          "title": "Remote File Manager",
+          "title": "RFM",
           "icon": "$(cloud)"
         }
       ]
@@ -60,7 +60,8 @@
       "remoteFileManager": [
         {
           "id": "remoteFileManagerView",
-          "name": "Remote Files",
+          "name": "Connections",
+          "contextualTitle": "RFM Conn",
           "icon": "$(cloud)"
         }
       ]
