@@ -624,15 +624,16 @@
       defaultExcludes.setAttribute("aria-pressed", String(!active));
       updateDefaultExcludesState();
     });
-    helps.forEach((help) => {
-      help.querySelector(".help-button").addEventListener("click", () => {
-        helps.forEach((otherHelp) => {
-          if (otherHelp !== help) otherHelp.classList.remove("open");
-        });
-        help.classList.toggle("open");
-      });
-    });
     document.addEventListener("click", (event) => {
+      const helpButton = event.target instanceof Element && event.target.closest(".help-button");
+      const help = helpButton?.closest(".help");
+      if (help) {
+        const shouldOpen = !help.classList.contains("open");
+        helps.forEach((otherHelp) => {
+          otherHelp.classList.toggle("open", otherHelp === help && shouldOpen);
+        });
+        return;
+      }
       helps.forEach((help) => {
         if (!help.contains(event.target)) help.classList.remove("open");
       });
