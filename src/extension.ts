@@ -283,14 +283,13 @@ export function activate(context: vscode.ExtensionContext): void {
     };
 
     if (!searchPanel) {
-      const reuseExistingGroup = vscode.window.tabGroups.all.length > 1;
+      const reuseExistingGroup = vscode.window.tabGroups.all.some(
+        (group) => group.tabs.length > 0,
+      );
       let searchColumn = reuseExistingGroup
         ? getOutermostEditorColumn("right")
         : vscode.ViewColumn.Beside;
-      if (
-        !reuseExistingGroup &&
-        vscode.window.visibleTextEditors.length === 0
-      ) {
+      if (!reuseExistingGroup) {
         const anchorDocument = await vscode.workspace.openTextDocument({
           language: "plaintext",
           content: "",
