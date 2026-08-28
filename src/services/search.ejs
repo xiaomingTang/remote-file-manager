@@ -387,7 +387,41 @@
   <form id="searchForm">
     <div class="search-row">
       <div class="field">
-        <label for="value">Name</label>
+        <label for="value">Name
+          <span class="help" id="nameHelp">
+            <button class="help-button" id="nameHelpButton" type="button" title="Show name pattern examples"
+              aria-label="Show name pattern examples">?</button>
+            <span class="tooltip" role="tooltip">
+              <p>Patterns match file and directory names, ignoring case.</p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pattern</th>
+                    <th>Matches</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>abc</code></td>
+                    <td>Names containing <code>abc</code>, such as <code>Abcd</code> and <code>AABC</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>*.ts</code></td>
+                    <td>Names containing <code>.ts</code>, such as <code>a.ts</code> and <code>a.tsx</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>foo?</code></td>
+                    <td>Names containing <code>foo</code> followed by one character, such as <code>foox</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>foo[ab]</code></td>
+                    <td>Names containing either <code>fooa</code> or <code>foob</code>.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </span>
+          </span>
+        </label>
         <div class="search-input">
           <input id="value" type="text" value="<%= defaultValue %>" autofocus />
           <button class="clear" id="clear" type="button" title="Clear search"
@@ -492,8 +526,7 @@
     const directory = document.getElementById("directory");
     const excludePatterns = document.getElementById("excludePatterns");
     const defaultExcludes = document.getElementById("defaultExcludes");
-    const excludeHelp = document.getElementById("excludeHelp");
-    const helpButton = document.getElementById("helpButton");
+    const helps = document.querySelectorAll(".help");
     const searchButton = document.getElementById("search");
     const toggleSearchOptions = document.getElementById("toggleSearchOptions");
     const searchOptions = document.getElementById("searchOptions");
@@ -591,17 +624,22 @@
       defaultExcludes.setAttribute("aria-pressed", String(!active));
       updateDefaultExcludesState();
     });
-    helpButton.addEventListener("click", () => {
-      excludeHelp.classList.toggle("open");
+    helps.forEach((help) => {
+      help.querySelector(".help-button").addEventListener("click", () => {
+        helps.forEach((otherHelp) => {
+          if (otherHelp !== help) otherHelp.classList.remove("open");
+        });
+        help.classList.toggle("open");
+      });
     });
     document.addEventListener("click", (event) => {
-      if (!excludeHelp.contains(event.target)) {
-        excludeHelp.classList.remove("open");
-      }
+      helps.forEach((help) => {
+        if (!help.contains(event.target)) help.classList.remove("open");
+      });
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !event.isComposing) {
-        excludeHelp.classList.remove("open");
+        helps.forEach((help) => help.classList.remove("open"));
       }
     });
     connection.addEventListener("change", () => {
