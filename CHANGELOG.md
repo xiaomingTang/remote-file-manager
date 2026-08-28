@@ -2,6 +2,10 @@
 
 All notable user-facing changes to Remote File Manager are documented here.
 
+## [0.1.4] - Unreleased
+
+- update search page layout and ui/ux
+
 ## [0.1.3]
 
 ### Changed
