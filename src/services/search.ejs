@@ -539,6 +539,7 @@
     const excludePatterns = document.getElementById("excludePatterns");
     const defaultExcludes = document.getElementById("defaultExcludes");
     const helps = document.querySelectorAll(".help");
+    const tooltips = document.querySelectorAll(".tooltip");
     const searchButton = document.getElementById("search");
     const toggleSearchOptions = document.getElementById("toggleSearchOptions");
     const searchOptions = document.getElementById("searchOptions");
@@ -635,6 +636,9 @@
       const active = defaultExcludes.getAttribute("aria-pressed") === "true";
       defaultExcludes.setAttribute("aria-pressed", String(!active));
       updateDefaultExcludesState();
+    });
+    tooltips.forEach((tooltip) => {
+      tooltip.addEventListener("click", (event) => event.preventDefault());
     });
     document.addEventListener("click", (event) => {
       const helpButton = event.target instanceof Element && event.target.closest(".help-button");
