@@ -140,6 +140,7 @@ const {
   resolveTreeCommandNode,
   resolveTreeCommandNodes,
   shouldCleanupTrash,
+  buildFindNameExpression,
   withItemNames,
 } = require("../dist/utils.js");
 const extensionPackage = require("../package.json");
@@ -226,6 +227,24 @@ test("ssh remote commands quote the script so OpenSSH keeps it as one -lc argume
   assert.equal(args[2], quoteShellArgument(script));
   assert.match(args.join(" "), /^sh -lc '/);
   assert.doesNotMatch(args.join(" "), /sh -lc for /);
+});
+
+test("name search supports literal and anchored ^ and $ matches", () => {
+  assert.equal(buildFindNameExpression("config"), "\\( -iname '*config*' \\)");
+  assert.equal(
+    buildFindNameExpression("^config"),
+    "\\( -iname '*^config*' -o -iname 'config*' \\)",
+  );
+  assert.equal(
+    buildFindNameExpression("config$"),
+    "\\( -iname '*config$*' -o -iname '*config' \\)",
+  );
+  assert.equal(
+    buildFindNameExpression("^config$"),
+    "\\( -iname '*^config$*' -o -iname 'config' \\)",
+  );
+  assert.equal(buildFindNameExpression("^"), "\\( -iname '*^*' \\)");
+  assert.equal(buildFindNameExpression("$"), "\\( -iname '*$*' \\)");
 });
 
 test("connector factories default to empty definitions when settings are absent", () => {

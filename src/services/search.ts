@@ -47,7 +47,10 @@ function sortSearchResults(
   results: SearchResult[],
   searchValue: string,
 ): SearchResult[] {
-  const normalizedSearchValue = searchValue.toLocaleLowerCase();
+  const normalizedSearchValue = searchValue
+    .replace(/^\^/, "")
+    .replace(/\$$/, "")
+    .toLocaleLowerCase();
 
   return results.slice().sort((left, right) => {
     const leftFileName = basename(left.path).toLocaleLowerCase();

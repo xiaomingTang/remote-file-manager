@@ -1,7 +1,11 @@
 import * as fs from "fs/promises";
 import { spawn } from "child_process";
-import { execFileAsync } from "../utils";
-import { buildFindExcludeExpression, dirname } from "../utils";
+import {
+  buildFindExcludeExpression,
+  buildFindNameExpression,
+  dirname,
+  execFileAsync,
+} from "../utils";
 import {
   IRemoteConnector,
   RemoteEntry,
@@ -156,9 +160,8 @@ export class WSLConnector implements IRemoteConnector {
     excludePatterns = [],
   }: RemoteSearchOptions): Promise<RemoteSearchResult[]> {
     const target = searchDirectory || "/";
-    const pattern = `*${searchValue}*`;
     const result = await this.execLinux(
-      `find ${quoteShellArgument(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d -o -type l \\) -iname ${quoteShellArgument(pattern)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
+      `find ${quoteShellArgument(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d -o -type l \\) ${buildFindNameExpression(searchValue)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
       { maxBuffer: 10 * 1024 * 1024 },
     );
 

@@ -10,7 +10,12 @@ import {
   resolveConnectionKind,
   RemoteFileManagerConnectionsDocument,
 } from "../types";
-import { buildFindExcludeExpression, dirname, execFileAsync } from "../utils";
+import {
+  buildFindExcludeExpression,
+  buildFindNameExpression,
+  dirname,
+  execFileAsync,
+} from "../utils";
 import { CustomError } from "../error/custom-error";
 import {
   quoteShellArgument,
@@ -198,9 +203,8 @@ export class SSHConnector implements IRemoteConnector {
     excludePatterns = [],
   }: RemoteSearchOptions): Promise<RemoteSearchResult[]> {
     const target = searchDirectory || "/";
-    const pattern = `*${searchValue}*`;
     const result = await this.execRemote(
-      `find ${quoteShellArgument(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d -o -type l \\) -iname ${quoteShellArgument(pattern)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
+      `find ${quoteShellArgument(target)} ${buildFindExcludeExpression(target, excludePatterns)}\\( -type f -o -type d -o -type l \\) ${buildFindNameExpression(searchValue)} -printf '%y\\t%p\\n' 2>/dev/null | head -n ${Math.max(1, Math.floor(limit))}`,
       { maxBuffer: 10 * 1024 * 1024 },
     );
 

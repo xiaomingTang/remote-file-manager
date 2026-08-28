@@ -45,6 +45,24 @@ function quoteFindPattern(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
+export function buildFindNameExpression(searchValue: string): string {
+  const patterns = [`*${searchValue}*`];
+  const hasPrefixAnchor = searchValue.startsWith("^");
+  const hasSuffixAnchor = searchValue.endsWith("$");
+
+  if (hasPrefixAnchor && hasSuffixAnchor && searchValue.length > 2) {
+    patterns.push(searchValue.slice(1, -1));
+  } else if (hasPrefixAnchor && searchValue.length > 1) {
+    patterns.push(`${searchValue.slice(1)}*`);
+  } else if (hasSuffixAnchor && searchValue.length > 1) {
+    patterns.push(`*${searchValue.slice(0, -1)}`);
+  }
+
+  return `\\( ${[...new Set(patterns)]
+    .map((pattern) => `-iname ${quoteFindPattern(pattern)}`)
+    .join(" -o ")} \\)`;
+}
+
 export function buildFindExcludeExpression(
   searchDirectory: string,
   excludePatterns: string[] = [],
