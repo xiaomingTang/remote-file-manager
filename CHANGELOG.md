@@ -2,7 +2,7 @@
 
 All notable user-facing changes to Remote File Manager are documented here.
 
-## [0.1.4] - Unreleased
+## [0.1.4]
 
 - update search page layout
 - enable anchored name searches with ^ and $
