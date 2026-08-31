@@ -174,7 +174,8 @@
       vertical-align: top;
     }
 
-    .tooltip code {
+    .tooltip code,
+    .search-options-summary code {
       font-family: var(--vscode-editor-font-family);
     }
 
@@ -288,6 +289,27 @@
 
     .search-options {
       margin-top: 4px;
+    }
+
+    .search-options-summary {
+      display: none;
+      margin: 10px 0 0;
+      color: var(--vscode-descriptionForeground);
+      font-size: .9em;
+      line-height: 1.7;
+      opacity: .75;
+    }
+
+    #searchOptions[hidden] + .search-options-summary {
+      display: block;
+      cursor: pointer;
+      transition: color .15s ease, background .15s ease, opacity .15s ease;
+    }
+
+    #searchOptions[hidden] + .search-options-summary:hover {
+      color: var(--vscode-foreground);
+      background: var(--vscode-toolbar-hoverBackground);
+      opacity: 1;
     }
 
     .summary {
@@ -514,6 +536,8 @@
             class="filter-icon" aria-hidden="true"></span></button>
       </div>
     </div>
+    <p class="search-options-summary" id="searchOptionsSummary" title="Double-click to show search options">Search in <code id="searchDirectorySummary"></code>,
+      excluding <code id="excludePatternsSummary"></code>.</p>
   </form>
   <div class="summary" id="summary" aria-live="polite"></div>
   <div class="result-tabs" role="tablist" aria-label="Search results">
@@ -543,6 +567,9 @@
     const searchButton = document.getElementById("search");
     const toggleSearchOptions = document.getElementById("toggleSearchOptions");
     const searchOptions = document.getElementById("searchOptions");
+    const searchOptionsSummary = document.getElementById("searchOptionsSummary");
+    const searchDirectorySummary = document.getElementById("searchDirectorySummary");
+    const excludePatternsSummary = document.getElementById("excludePatternsSummary");
     const clearButton = document.getElementById("clear");
     const summary = document.getElementById("summary");
     const filesTab = document.getElementById("filesTab");
@@ -579,12 +606,24 @@
 
     updateDefaultExcludesState();
 
-    toggleSearchOptions.addEventListener("click", () => {
+    function updateSearchOptionsSummary() {
+      searchDirectorySummary.textContent = directory.value.trim() || "the configured root";
+      excludePatternsSummary.textContent = excludePatterns.value.trim() || "no patterns";
+    }
+
+    updateSearchOptionsSummary();
+
+    function toggleSearchOptionsVisibility() {
       const expanded = toggleSearchOptions.getAttribute("aria-expanded") === "true";
       toggleSearchOptions.setAttribute("aria-expanded", String(!expanded));
       toggleSearchOptions.setAttribute("aria-label", `${expanded ? "Show" : "Hide"} search options`);
       toggleSearchOptions.title = `${expanded ? "Show" : "Hide"} search options`;
       searchOptions.hidden = expanded;
+    }
+
+    toggleSearchOptions.addEventListener("click", toggleSearchOptionsVisibility);
+    searchOptionsSummary.addEventListener("dblclick", () => {
+      if (searchOptions.hidden) toggleSearchOptionsVisibility();
     });
 
     function clearResults() {
@@ -637,6 +676,8 @@
       defaultExcludes.setAttribute("aria-pressed", String(!active));
       updateDefaultExcludesState();
     });
+    directory.addEventListener("input", updateSearchOptionsSummary);
+    excludePatterns.addEventListener("input", updateSearchOptionsSummary);
     tooltips.forEach((tooltip) => {
       tooltip.addEventListener("click", (event) => event.preventDefault());
     });
@@ -682,11 +723,13 @@
       searchButton.setAttribute("aria-label", "Search");
       if (message.type === "connection-default") {
         directory.value = message.searchDirectory;
+        updateSearchOptionsSummary();
         return;
       }
       if (message.type === "search-context") {
         connection.value = message.connectionId;
         directory.value = message.searchDirectory;
+        updateSearchOptionsSummary();
         value.focus();
         return;
       }
