@@ -2,6 +2,10 @@
 
 All notable user-facing changes to Remote File Manager are documented here.
 
+## [0.1.5] Unreleased
+
+- add interactive collapsed search options summary
+
 ## [0.1.4]
 
 - update search page layout
