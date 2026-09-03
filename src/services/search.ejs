@@ -392,6 +392,10 @@
       color: var(--vscode-textLink-foreground);
     }
 
+    .result.visited .name {
+      color: var(--vscode-charts-purple, var(--vscode-descriptionForeground));
+    }
+
     .name {
       display: block;
       font-weight: 600;
@@ -795,7 +799,10 @@
         button.innerHTML = `<span class="name"></span><span class="path"></span>`;
         button.querySelector(".name").textContent = result.name;
         button.querySelector(".path").textContent = result.path;
-        button.addEventListener("click", () => vscode.postMessage({ type: "open", connectionId: result.connectionId, path: result.path, isDirectory: result.isDirectory }));
+        button.addEventListener("click", () => {
+          item.classList.add("visited");
+          vscode.postMessage({ type: "open", connectionId: result.connectionId, path: result.path, isDirectory: result.isDirectory });
+        });
         item.appendChild(button);
         (result.isDirectory ? directoriesResults : filesResults).appendChild(item);
       });
