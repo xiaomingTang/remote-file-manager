@@ -5,6 +5,7 @@ All notable user-facing changes to Remote File Manager are documented here.
 ## [0.1.5] Unreleased
 
 - add interactive collapsed search options summary
+- add a per-search maximum results setting
 
 ## [0.1.4]
 
