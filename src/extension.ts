@@ -985,6 +985,17 @@ export function activate(context: vscode.ExtensionContext): void {
       },
     ),
     vscode.commands.registerCommand(
+      "remoteFileManager.copyPath",
+      async (node?: RemoteNode) => {
+        const target = resolveTreeCommandNode(node, treeView.selection);
+        if (!target || !["file", "directory"].includes(target.type)) {
+          return;
+        }
+
+        await vscode.env.clipboard.writeText(target.path);
+      },
+    ),
+    vscode.commands.registerCommand(
       "remoteFileManager.createFile",
       async (node?: RemoteNode) => {
         if (

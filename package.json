@@ -163,6 +163,12 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "remoteFileManager.copyPath",
+        "title": "Copy Path",
+        "category": "Remote File Manager",
+        "icon": "$(copy)"
+      },
+      {
         "command": "remoteFileManager.createFile",
         "title": "📄 New File",
         "category": "Remote File Manager",
@@ -317,6 +323,11 @@
           "group": "5_transfer@1"
         },
         {
+          "command": "remoteFileManager.copyPath",
+          "when": "view == remoteFileManagerView && viewItem =~ /^(file|directory).*$/",
+          "group": "5_transfer@2"
+        },
+        {
           "command": "remoteFileManager.openTerminal",
           "when": "view == remoteFileManagerView",
           "group": "6_terminal@0"
@@ -325,6 +336,10 @@
       "commandPalette": [
         {
           "command": "remoteFileManager.download",
+          "when": "false"
+        },
+        {
+          "command": "remoteFileManager.copyPath",
           "when": "false"
         }
       ]
