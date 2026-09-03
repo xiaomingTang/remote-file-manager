@@ -6,6 +6,7 @@ import { basename } from "../utils";
 
 export interface SearchOptions extends RemoteSearchOptions {
   connectionId: string;
+  maxResults: number;
 }
 
 export interface SearchResult {
@@ -27,6 +28,7 @@ export interface CreateSearchHtmlOptions {
   defaultConnectionId: string;
   defaultSearchDirectory: string;
   defaultValue: string;
+  defaultMaxResults: number;
   defaultExcludePatterns: string;
   useDefaultExcludePatterns: boolean;
 }
@@ -97,10 +99,14 @@ export async function search(
 
   const searchDirectory = options.searchDirectory.trim() || definition.path;
   const connector = connectionManager.getConnectorOrThrow(options.connectionId);
+  const configuredLimit = connectionManager.getMaxSearchFiles?.();
   const paths = await connector.searchFiles({
     searchValue,
     searchDirectory,
-    limit: connectionManager.getMaxSearchFiles(),
+    limit:
+      Number.isInteger(options.maxResults) && options.maxResults >= 1
+        ? options.maxResults
+        : configuredLimit,
     excludePatterns: options.excludePatterns,
   });
 

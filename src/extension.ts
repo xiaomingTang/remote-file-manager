@@ -272,6 +272,7 @@ export function activate(context: vscode.ExtensionContext): void {
       defaultConnectionId: definition.id,
       defaultSearchDirectory,
       defaultValue: "",
+      defaultMaxResults: Math.max(1, connectionManager.getMaxSearchFiles()),
       defaultExcludePatterns: context.globalState.get<string>(
         SEARCH_EXCLUDE_PATTERNS_STATE_KEY,
         "/mnt, /media",
@@ -314,6 +315,11 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       searchPanel.webview.html = createSearchHtml(htmlOptions);
       searchPanel.webview.onDidReceiveMessage(async (message) => {
+        if (message?.type === "open-search-settings") {
+          await manageConnections();
+          return;
+        }
+
         if (message?.type === "connection-change") {
           const nextDefinition =
             typeof message.connectionId === "string"

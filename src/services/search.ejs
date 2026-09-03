@@ -99,6 +99,10 @@
       min-width: 0;
     }
 
+    .number-input {
+      max-width: 180px;
+    }
+
     .icon-button {
       width: 32px;
       min-width: 32px;
@@ -496,48 +500,65 @@
           <input id="directory" type="text" value="<%= defaultSearchDirectory %>" />
         </div>
       </div>
-      <label for="excludePatterns">Exclude patterns
-        <span class="help" id="excludeHelp">
-          <button class="help-button" id="helpButton" type="button" title="Show pattern examples"
-            aria-label="Show pattern examples">?</button>
-          <span class="tooltip" role="tooltip">
-            <p>Patterns are relative to the search directory and separated with ",".</p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Pattern</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>**/node_modules</code></td>
-                  <td>Ignores <code>node_modules</code> and its subdirectories at any level (default exclude).</td>
-                </tr>
-                <tr>
-                  <td><code>dist/**/*.map</code></td>
-                  <td>Relative pattern that ignores <code>.map</code> files at any level under <code>dist</code>.</td>
-                </tr>
-                <tr>
-                  <td><code>app</code></td>
-                  <td>Relative pattern that matches the complete <code>./app</code> path, whether it is a file or
-                    directory.</td>
-                </tr>
-              </tbody>
-            </table>
-          </span>
-        </span>
-      </label>
-      <div class="pattern-input">
-        <input id="excludePatterns" type="text" value="<%= defaultExcludePatterns %>"
-          placeholder='Relative patterns, separated with ","' />
-        <button class="icon-button" id="defaultExcludes" type="button" title="Use default exclude patterns"
-          aria-label="Use default exclude patterns" aria-pressed="<%= useDefaultExcludePatterns %>"><span
-            class="filter-icon" aria-hidden="true"></span></button>
+      <div class="field-row">
+        <div class="field">
+          <label for="maxResults">Maximum results
+            <span class="help" id="maxResultsHelp">
+              <button class="help-button" id="maxResultsHelpButton" type="button" title="Show maximum results information"
+                aria-label="Show maximum results information">?</button>
+              <span class="tooltip" role="tooltip">
+                <p>This value applies only to the current search and is discarded when this page is closed.</p>
+                <p>To save it for future searches, update <a href="#" id="openSearchSettings">VS Code settings</a>.</p>
+              </span>
+            </span>
+          </label>
+          <input id="maxResults" type="number" min="1" step="1" value="<%= defaultMaxResults %>" />
+        </div>
+        <div class="field">
+          <label for="excludePatterns">Exclude patterns
+            <span class="help" id="excludeHelp">
+              <button class="help-button" id="helpButton" type="button" title="Show pattern examples"
+                aria-label="Show pattern examples">?</button>
+              <span class="tooltip" role="tooltip">
+                <p>Patterns are relative to the search directory and separated with ",".</p>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Pattern</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><code>**/node_modules</code></td>
+                      <td>Ignores <code>node_modules</code> and its subdirectories at any level (default exclude).</td>
+                    </tr>
+                    <tr>
+                      <td><code>dist/**/*.map</code></td>
+                      <td>Relative pattern that ignores <code>.map</code> files at any level under <code>dist</code>.</td>
+                    </tr>
+                    <tr>
+                      <td><code>app</code></td>
+                      <td>Relative pattern that matches the complete <code>./app</code> path, whether it is a file or
+                        directory.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </span>
+            </span>
+          </label>
+          <div class="pattern-input">
+            <input id="excludePatterns" type="text" value="<%= defaultExcludePatterns %>"
+              placeholder='Relative patterns, separated with ","' />
+            <button class="icon-button" id="defaultExcludes" type="button" title="Use default exclude patterns"
+              aria-label="Use default exclude patterns" aria-pressed="<%= useDefaultExcludePatterns %>"><span
+                class="filter-icon" aria-hidden="true"></span></button>
+          </div>
+        </div>
       </div>
     </div>
     <p class="search-options-summary" id="searchOptionsSummary" title="Double-click to show search options">Search in <code id="searchDirectorySummary"></code>,
-      excluding <code id="excludePatternsSummary"></code>.</p>
+      up to <code id="maxResultsSummary"></code> results, excluding <code id="excludePatternsSummary"></code>.</p>
   </form>
   <div class="summary" id="summary" aria-live="polite"></div>
   <div class="result-tabs" role="tablist" aria-label="Search results">
@@ -560,6 +581,7 @@
     const connection = document.getElementById("connection");
     const value = document.getElementById("value");
     const directory = document.getElementById("directory");
+    const maxResults = document.getElementById("maxResults");
     const excludePatterns = document.getElementById("excludePatterns");
     const defaultExcludes = document.getElementById("defaultExcludes");
     const helps = document.querySelectorAll(".help");
@@ -569,7 +591,9 @@
     const searchOptions = document.getElementById("searchOptions");
     const searchOptionsSummary = document.getElementById("searchOptionsSummary");
     const searchDirectorySummary = document.getElementById("searchDirectorySummary");
+    const maxResultsSummary = document.getElementById("maxResultsSummary");
     const excludePatternsSummary = document.getElementById("excludePatternsSummary");
+    const openSearchSettings = document.getElementById("openSearchSettings");
     const clearButton = document.getElementById("clear");
     const summary = document.getElementById("summary");
     const filesTab = document.getElementById("filesTab");
@@ -608,7 +632,18 @@
 
     function updateSearchOptionsSummary() {
       searchDirectorySummary.textContent = directory.value.trim() || "the configured root";
+      maxResultsSummary.textContent = maxResults.value;
       excludePatternsSummary.textContent = excludePatterns.value.trim() || "no patterns";
+    }
+
+    function normalizeMaxResults() {
+      const parsed = Number.parseInt(maxResults.value, 10);
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        maxResults.value = "<%= defaultMaxResults %>";
+      } else {
+        maxResults.value = String(parsed);
+      }
+      updateSearchOptionsSummary();
     }
 
     updateSearchOptionsSummary();
@@ -636,6 +671,7 @@
     value.focus();
 
     function runSearch() {
+      normalizeMaxResults();
       const searchValue = value.value.trim();
       if (!searchValue) {
         summary.textContent = "";
@@ -657,6 +693,7 @@
           connectionId: connection.value,
           searchValue,
           searchDirectory: directory.value.trim(),
+          maxResults: Number.parseInt(maxResults.value, 10),
           excludePatterns: excludePatterns.value.split(",").map((pattern) => pattern.trim()).filter(Boolean),
         },
       });
@@ -678,6 +715,11 @@
     });
     directory.addEventListener("input", updateSearchOptionsSummary);
     excludePatterns.addEventListener("input", updateSearchOptionsSummary);
+    maxResults.addEventListener("blur", normalizeMaxResults);
+    openSearchSettings.addEventListener("click", (event) => {
+      event.preventDefault();
+      vscode.postMessage({ type: "open-search-settings" });
+    });
     tooltips.forEach((tooltip) => {
       tooltip.addEventListener("click", (event) => event.preventDefault());
     });
