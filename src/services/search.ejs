@@ -335,6 +335,11 @@
       opacity: 1;
     }
 
+    #searchOptions[hidden] + .search-options-summary:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: 2px;
+    }
+
     .summary {
       margin: 16px 0 8px;
       color: var(--vscode-descriptionForeground);
@@ -610,7 +615,8 @@
         </div>
       </div>
     </div>
-    <p class="search-options-summary" id="searchOptionsSummary" title="Double-click to show search options">Search in <code id="searchDirectorySummary"></code>,
+    <p class="search-options-summary" id="searchOptionsSummary" role="button" tabindex="0" aria-expanded="false"
+      aria-controls="searchOptions" aria-label="Show search options" title="Show search options">Search in <code id="searchDirectorySummary"></code>,
       up to <code id="maxResultsSummary"></code> results, excluding <code id="excludePatternsSummary"></code>.</p>
   </form>
   <div class="summary" id="summary" aria-live="polite"></div>
@@ -714,14 +720,25 @@
 
     function toggleSearchOptionsVisibility() {
       const expanded = toggleSearchOptions.getAttribute("aria-expanded") === "true";
-      toggleSearchOptions.setAttribute("aria-expanded", String(!expanded));
-      toggleSearchOptions.setAttribute("aria-label", `${expanded ? "Show" : "Hide"} search options`);
-      toggleSearchOptions.title = `${expanded ? "Show" : "Hide"} search options`;
+      const nextExpanded = !expanded;
+      const label = `${nextExpanded ? "Hide" : "Show"} search options`;
+      toggleSearchOptions.setAttribute("aria-expanded", String(nextExpanded));
+      toggleSearchOptions.setAttribute("aria-label", label);
+      toggleSearchOptions.title = label;
+      searchOptionsSummary.setAttribute("aria-expanded", String(nextExpanded));
+      searchOptionsSummary.setAttribute("aria-label", label);
+      searchOptionsSummary.title = label;
       searchOptions.hidden = expanded;
+      if (nextExpanded) toggleSearchOptions.focus();
     }
 
     toggleSearchOptions.addEventListener("click", toggleSearchOptionsVisibility);
     searchOptionsSummary.addEventListener("dblclick", () => {
+      if (searchOptions.hidden) toggleSearchOptionsVisibility();
+    });
+    searchOptionsSummary.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
       if (searchOptions.hidden) toggleSearchOptionsVisibility();
     });
 
