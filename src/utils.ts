@@ -14,6 +14,69 @@ function getVsCodeApi(): typeof import("vscode") {
   }
 }
 
+export async function showSameNameConflict(
+  name: string,
+  _action: "paste" | "rename" | "upload" | "drop",
+): Promise<"overwrite" | "cancel" | "rename"> {
+  const vscode = getVsCodeApi();
+  const choice = await vscode.window.showWarningMessage(
+    `An item named "${name}" already exists.`,
+    { modal: true },
+    "Overwrite",
+    "Cancel",
+    "Rename",
+  );
+
+  if (choice === "Cancel") {
+    return "cancel";
+  }
+  if (choice === "Overwrite") {
+    return "overwrite";
+  }
+  if (choice === "Rename") {
+    return "rename";
+  }
+  return "cancel";
+}
+
+export type NameConflictAction = "paste" | "rename" | "upload" | "drop";
+
+export type NameConflictDecision =
+  { action: "cancel" | "overwrite" } | { action: "rename"; payload: string };
+
+export async function resolveNameConflict(
+  action: NameConflictAction,
+  name: string,
+  exists: (name: string) => Promise<boolean>,
+): Promise<NameConflictDecision | undefined> {
+  let candidate = name;
+
+  while (await exists(candidate)) {
+    const choice = await showSameNameConflict(candidate, action);
+    if (choice === "cancel") {
+      return { action: "cancel" };
+    }
+    if (choice === "overwrite") {
+      return { action: "overwrite" };
+    }
+
+    const renamed = await getVsCodeApi().window.showInputBox({
+      prompt: `${action[0].toUpperCase()}${action.slice(1)} as`,
+      value: candidate,
+      ignoreFocusOut: true,
+    });
+    if (!renamed || !renamed.trim()) {
+      return { action: "cancel" };
+    }
+    candidate = renamed.trim();
+  }
+
+  if (candidate === name) {
+    return undefined;
+  }
+  return { action: "rename", payload: candidate };
+}
+
 export function normalizeRemotePath(remotePath: string): string {
   const normalized = remotePath.replace(/\\/g, "/");
   return normalized.startsWith("/") ? normalized : `/${normalized}`;

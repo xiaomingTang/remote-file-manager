@@ -6,8 +6,10 @@ import {
   dirname,
   joinPath,
   resolveDropTargetPath,
+  resolveNameConflict,
   toVirtualUri,
 } from "../utils";
+import { msg } from "../error/message";
 import { RemoteFileOperations } from "../services/file-operations";
 import { LoadingManager } from "../loading";
 import { RemoteFileManagerFileSystemProvider } from "./fs";
@@ -92,61 +94,88 @@ export class RemoteTreeDragAndDropController implements vscode.TreeDragAndDropCo
         ? dirname(target.path)
         : target.path
       : "/";
-    let lastMovedPath: string | undefined;
+    try {
+      const targetConnector =
+        await this.fileOperations.getConnector(targetConnectionId);
+      let lastMovedPath: string | undefined;
 
-    for (const entry of payload) {
-      const nextPath = resolveDropTargetPath(entry.path, targetPath);
-      if (
-        entry.connectionId === targetConnectionId &&
-        entry.path === nextPath
-      ) {
-        continue;
+      for (const entry of payload) {
+        const nextPath = resolveDropTargetPath(entry.path, targetPath);
+        if (
+          entry.connectionId === targetConnectionId &&
+          entry.path === nextPath
+        ) {
+          continue;
+        }
+
+        const nextName = basename(nextPath);
+        const decision = await resolveNameConflict(
+          "drop",
+          nextName,
+          async (candidate) => {
+            const entries = await targetConnector.listDir(targetPath);
+            return entries.some((item) => item.name === candidate);
+          },
+        );
+        if (decision?.action === "cancel") {
+          continue;
+        }
+        const resolvedName =
+          decision?.action === "rename" ? decision.payload : nextName;
+        const resolvedPath = joinPath(targetPath, resolvedName);
+        if (entry.connectionId === targetConnectionId) {
+          await this.fileOperations.rename(
+            { connectionId: entry.connectionId, path: entry.path },
+            { connectionId: targetConnectionId, path: resolvedPath },
+            { overwrite: decision?.action === "overwrite" },
+          );
+          this.fileSystemProvider.notifyMoved(
+            toVirtualUri(entry.connectionId, entry.path),
+            toVirtualUri(targetConnectionId, resolvedPath),
+          );
+        } else {
+          await this.fileOperations.copy(
+            { connectionId: entry.connectionId, path: entry.path },
+            { connectionId: targetConnectionId, path: resolvedPath },
+            { overwrite: decision?.action === "overwrite" },
+          );
+          this.fileSystemProvider.notifyRestored(
+            toVirtualUri(targetConnectionId, resolvedPath),
+          );
+        }
+        lastMovedPath = resolvedPath;
       }
 
-      if (entry.connectionId === targetConnectionId) {
-        await this.fileOperations.rename(
-          { connectionId: entry.connectionId, path: entry.path },
-          { connectionId: targetConnectionId, path: nextPath },
-        );
-        this.fileSystemProvider.notifyMoved(
-          toVirtualUri(entry.connectionId, entry.path),
-          toVirtualUri(targetConnectionId, nextPath),
-        );
-      } else {
-        await this.fileOperations.copy(
-          { connectionId: entry.connectionId, path: entry.path },
-          { connectionId: targetConnectionId, path: nextPath },
-        );
-        this.fileSystemProvider.notifyRestored(
-          toVirtualUri(targetConnectionId, nextPath),
-        );
-      }
-      lastMovedPath = nextPath;
-    }
-
-    const targetConnection = target?.connectionId ?? payload[0].connectionId;
-    await this.treeProvider.revealNode(
-      this.treeProvider.getDirectoryNode(targetConnection, targetPath, target),
-      TO_EXPAND,
-    );
-    await this.treeProvider.refresh();
-    await this.treeProvider.selectNode(
-      targetConnection,
-      targetPath,
-      lastMovedPath,
-      target,
-    );
-
-    if (lastMovedPath && payload.length === 1) {
-      await vscode.commands.executeCommand(
-        "vscode.open",
-        toVirtualUri(targetConnection, lastMovedPath),
-        {
-          preview: true,
-          viewColumn: vscode.ViewColumn.Active,
-          preserveFocus: true,
-        },
+      const targetConnection = target?.connectionId ?? payload[0].connectionId;
+      await this.treeProvider.revealNode(
+        this.treeProvider.getDirectoryNode(
+          targetConnection,
+          targetPath,
+          target,
+        ),
+        TO_EXPAND,
       );
+      await this.treeProvider.refresh();
+      await this.treeProvider.selectNode(
+        targetConnection,
+        targetPath,
+        lastMovedPath,
+        target,
+      );
+
+      if (lastMovedPath && payload.length === 1) {
+        await vscode.commands.executeCommand(
+          "vscode.open",
+          toVirtualUri(targetConnection, lastMovedPath),
+          {
+            preview: true,
+            viewColumn: vscode.ViewColumn.Active,
+            preserveFocus: true,
+          },
+        );
+      }
+    } catch (error) {
+      void vscode.window.showErrorMessage(`Unable to drop item: ${msg(error)}`);
     }
   }
 }

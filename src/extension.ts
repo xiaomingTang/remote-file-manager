@@ -19,6 +19,7 @@ import {
   normalizeRemotePath,
   resolveTreeCommandNode,
   resolveTreeCommandNodes,
+  resolveNameConflict,
   toVirtualUri,
   withItemNames,
 } from "./utils";
@@ -47,33 +48,6 @@ const TREE_FILE_DOUBLE_CLICK_INTERVAL_MS = 300;
 interface TreeClipboardState {
   action: TreeClipboardAction;
   items: RemoteNode[];
-}
-
-async function showSameNameConflict(
-  name: string,
-  action: "paste" | "rename" | "upload",
-): Promise<"overwrite" | "cancel" | "rename" | undefined> {
-  const choice = await vscode.window.showWarningMessage(
-    `An item named "${name}" already exists.`,
-    { modal: true },
-    "Overwrite",
-    "Cancel",
-    "Rename",
-  );
-
-  if (choice === "Cancel") {
-    return "cancel";
-  }
-
-  if (choice === "Overwrite") {
-    return "overwrite";
-  }
-
-  if (choice === "Rename") {
-    return "rename";
-  }
-
-  return undefined;
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -452,49 +426,6 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
 
-  const ensureUniqueName = async (
-    node: RemoteNode,
-    destination: string,
-    newName: string,
-    skipCurrentPath?: string,
-  ): Promise<boolean> => {
-    const connector = await fileOperations.getConnector(node.connectionId);
-    const entries = await connector.listDir(destination);
-    const duplicate = entries.some(
-      (entry) =>
-        entry.name === newName &&
-        entry.name !== basename(skipCurrentPath ?? ""),
-    );
-
-    if (duplicate) {
-      const choice = await showSameNameConflict(newName, "rename");
-      if (choice === "cancel") {
-        throw new CustomError("renameCanceled");
-      }
-      if (choice === "rename") {
-        const retry = await vscode.window.showInputBox({
-          prompt: "Rename as",
-          value: newName,
-          ignoreFocusOut: true,
-        });
-        if (!retry || !retry.trim()) {
-          throw new CustomError("renameCanceled");
-        }
-        const next = retry.trim();
-        if (next === newName) {
-          throw new CustomError("nameNotChanged");
-        }
-        return ensureUniqueName(node, destination, next, skipCurrentPath);
-      }
-      if (choice === "overwrite") {
-        return true;
-      }
-      throw new CustomError("nameAlreadyExists");
-    }
-
-    return false;
-  };
-
   const applyRename = async (node: RemoteNode): Promise<void> => {
     const currentName = basename(node.path);
     const nextName = await vscode.window.showInputBox({
@@ -514,17 +445,29 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const parentPath = dirname(node.path);
     try {
-      const overwrite = await ensureUniqueName(
-        node,
-        parentPath,
+      const connector = await fileOperations.getConnector(node.connectionId);
+      const decision = await resolveNameConflict(
+        "rename",
         trimmed,
-        node.path,
+        async (candidate) => {
+          const entries = await connector.listDir(parentPath);
+          return entries.some(
+            (entry) => entry.name === candidate && entry.name !== currentName,
+          );
+        },
       );
-      const targetPath = joinPath(parentPath, trimmed);
+      if (decision?.action === "cancel") {
+        return;
+      }
+      const targetName =
+        decision?.action === "rename" ? decision.payload : trimmed;
       await fileOperations.rename(
         { connectionId: node.connectionId, path: node.path },
-        { connectionId: node.connectionId, path: targetPath },
-        { overwrite },
+        {
+          connectionId: node.connectionId,
+          path: joinPath(parentPath, targetName),
+        },
+        { overwrite: decision?.action === "overwrite" },
       );
     } catch (error) {
       if (!(error instanceof CustomError && error.code === "renameCanceled")) {
@@ -660,43 +603,32 @@ export function activate(context: vscode.ExtensionContext): void {
           continue;
         }
 
-        const entries = await destinationConnector.listDir(destination);
-        const duplicate = entries.some((entry) => entry.name === nextName);
-        let resolvedPath = nextPath;
-        let overwrite = false;
-        if (duplicate) {
-          const choice = await showSameNameConflict(nextName, "paste");
-          if (choice === "cancel") {
-            return;
-          }
-          if (choice === "rename") {
-            const renamed = await vscode.window.showInputBox({
-              prompt: "Paste as",
-              value: nextName,
-              ignoreFocusOut: true,
-            });
-            if (!renamed || !renamed.trim()) {
-              return;
-            }
-            resolvedPath = joinPath(destination, renamed.trim());
-          }
-          overwrite = choice === "overwrite";
-          if (!choice) {
-            return;
-          }
+        const decision = await resolveNameConflict(
+          "paste",
+          nextName,
+          async (candidate) => {
+            const entries = await destinationConnector.listDir(destination);
+            return entries.some((entry) => entry.name === candidate);
+          },
+        );
+        if (decision?.action === "cancel") {
+          continue;
         }
+        const resolvedName =
+          decision?.action === "rename" ? decision.payload : nextName;
+        const resolvedPath = joinPath(destination, resolvedName);
 
         if (action === "cut" && item.connectionId === destinationConnectionId) {
           await fileOperations.rename(
             { connectionId: item.connectionId, path: item.path },
             { connectionId: destinationConnectionId, path: resolvedPath },
-            { overwrite },
+            { overwrite: decision?.action === "overwrite" },
           );
         } else {
           await fileOperations.copy(
             { connectionId: item.connectionId, path: item.path },
             { connectionId: destinationConnectionId, path: resolvedPath },
-            { overwrite },
+            { overwrite: decision?.action === "overwrite" },
           );
         }
         lastPastedPath = resolvedPath;
@@ -728,8 +660,25 @@ export function activate(context: vscode.ExtensionContext): void {
     source: vscode.Uri,
     destination: string,
     targetName: string,
-  ): Promise<void> => {
-    const targetPath = joinPath(destination, targetName);
+  ): Promise<string | undefined> => {
+    const decision = await resolveNameConflict(
+      "upload",
+      targetName,
+      async (candidate) => {
+        const entries = await connector.listDir(destination);
+        return entries.some((entry) => entry.name === candidate);
+      },
+    );
+    if (decision?.action === "cancel") {
+      return undefined;
+    }
+
+    const resolvedName =
+      decision?.action === "rename" ? decision.payload : targetName;
+    const targetPath = joinPath(destination, resolvedName);
+    if (decision?.action === "overwrite") {
+      await connector.deletePath(targetPath);
+    }
     const { type: fileType } = await vscode.workspace.fs.stat(source);
 
     if (fileType & vscode.FileType.Directory) {
@@ -747,10 +696,11 @@ export function activate(context: vscode.ExtensionContext): void {
           childName,
         );
       }
-      return;
+      return targetPath;
     }
 
     await connector.uploadFile(source.fsPath, targetPath);
+    return targetPath;
   };
 
   const handleUpload = async (
@@ -779,47 +729,14 @@ export function activate(context: vscode.ExtensionContext): void {
       const connector = await fileOperations.getConnector(target.connectionId);
       let lastUploadedPath: string | undefined;
       for (const source of sources) {
-        let targetName = basename(source.path);
-        while (true) {
-          const entries = await connector.listDir(target.path);
-          if (!entries.some((entry) => entry.name === targetName)) {
-            break;
-          }
-
-          const choice = await showSameNameConflict(targetName, "upload");
-          if (choice === "cancel" || !choice) {
-            targetName = "";
-            break;
-          }
-          if (choice === "rename") {
-            const renamed = await vscode.window.showInputBox({
-              prompt: "Upload as",
-              value: targetName,
-              ignoreFocusOut: true,
-            });
-            if (!renamed || !renamed.trim()) {
-              targetName = "";
-              break;
-            }
-            targetName = renamed.trim();
-          } else {
-            await connector.deletePath(joinPath(target.path, targetName));
-            break;
-          }
-        }
-
-        if (!targetName) {
-          continue;
-        }
-
-        await uploadLocalEntry(
+        const uploadedPath = await uploadLocalEntry(
           connector,
           target.connectionId,
           source,
           target.path,
-          targetName,
+          basename(source.path),
         );
-        lastUploadedPath = joinPath(target.path, targetName);
+        lastUploadedPath = uploadedPath ?? lastUploadedPath;
       }
       await treeProvider.revealNode(
         treeProvider.getDirectoryNode(target.connectionId, target.path, target),
