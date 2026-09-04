@@ -647,7 +647,7 @@ test("connection items support paste from the tree context menu", () => {
     (entry) => entry.command === "remoteFileManager.pasteNode",
   );
 
-  assert.match(pasteMenu.when, /viewItem == connection/);
+  assert.match(pasteMenu.when, /view == remoteFileManagerView/);
   assert.match(pasteCommand.enablement, /remoteFileManager.clipboardAvailable/);
 });
 
