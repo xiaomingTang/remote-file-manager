@@ -5,6 +5,7 @@ All notable user-facing changes to Remote File Manager are documented here.
 ## [0.1.6] - Unreleased
 
 - unify file conflict handling
+- fix(sqlite): preview WAL-enabled databases automatically
 
 ## [0.1.5]
 
