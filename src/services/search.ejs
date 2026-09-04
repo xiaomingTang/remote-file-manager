@@ -392,6 +392,36 @@
       color: var(--vscode-textLink-foreground);
     }
 
+    .result-menu {
+      position: fixed;
+      z-index: 3;
+      min-width: 160px;
+      padding: 4px 0;
+      border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border));
+      background: var(--vscode-menu-background);
+      box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+    }
+
+    .result-menu[hidden] {
+      display: none;
+    }
+
+    .result-menu button {
+      width: 100%;
+      padding: 6px 12px;
+      border: 0;
+      color: var(--vscode-menu-foreground);
+      background: transparent;
+      text-align: left;
+    }
+
+    .result-menu button:hover,
+    .result-menu button:focus-visible {
+      color: var(--vscode-menu-selectionForeground);
+      background: var(--vscode-menu-selectionBackground);
+      outline: none;
+    }
+
     .result.visited .name {
       color: var(--vscode-charts-purple, var(--vscode-descriptionForeground));
     }
@@ -579,6 +609,10 @@
       <ul class="results" id="directoriesResults"></ul>
     </section>
   </div>
+  <div class="result-menu" id="resultMenu" role="menu" hidden>
+    <button type="button" role="menuitem" data-copy="name">Copy File Name</button>
+    <button type="button" role="menuitem" data-copy="path">Copy Full Path</button>
+  </div>
   <script>
     const vscode = acquireVsCodeApi();
     const searchForm = document.getElementById("searchForm");
@@ -606,6 +640,8 @@
     const directoriesPanel = document.getElementById("directoriesPanel");
     const filesResults = document.getElementById("filesResults");
     const directoriesResults = document.getElementById("directoriesResults");
+    const resultMenu = document.getElementById("resultMenu");
+    let contextResult;
 
     function selectResultTab(tab) {
       const filesSelected = tab === filesTab;
@@ -671,6 +707,36 @@
       filesTab.textContent = "Files (0)";
       directoriesTab.textContent = "Directories (0)";
     }
+
+    function hideResultMenu() {
+      resultMenu.hidden = true;
+      contextResult = undefined;
+    }
+
+    function showResultMenu(event, result) {
+      event.preventDefault();
+      contextResult = result;
+      resultMenu.hidden = false;
+      resultMenu.style.left = `${Math.min(event.clientX, window.innerWidth - resultMenu.offsetWidth - 4)}px`;
+      resultMenu.style.top = `${Math.min(event.clientY, window.innerHeight - resultMenu.offsetHeight - 4)}px`;
+      resultMenu.querySelector("button").focus();
+    }
+
+    resultMenu.addEventListener("click", (event) => {
+      const copyButton = event.target.closest("button[data-copy]");
+      if (!copyButton || !contextResult) return;
+      const valueToCopy = copyButton.dataset.copy === "name"
+        ? contextResult.path.split(/[\\/]/).filter(Boolean).pop() || contextResult.path
+        : contextResult.path;
+      vscode.postMessage({ type: "copy-search-value", value: valueToCopy });
+      hideResultMenu();
+    });
+    document.addEventListener("click", (event) => {
+      if (!resultMenu.contains(event.target)) hideResultMenu();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") hideResultMenu();
+    });
 
     value.focus();
 
@@ -800,9 +866,11 @@
         button.querySelector(".name").textContent = result.name;
         button.querySelector(".path").textContent = result.path;
         button.addEventListener("click", () => {
+          hideResultMenu();
           item.classList.add("visited");
           vscode.postMessage({ type: "open", connectionId: result.connectionId, path: result.path, isDirectory: result.isDirectory });
         });
+        item.addEventListener("contextmenu", (event) => showResultMenu(event, result));
         item.appendChild(button);
         (result.isDirectory ? directoriesResults : filesResults).appendChild(item);
       });

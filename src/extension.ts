@@ -317,6 +317,23 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       searchPanel.webview.html = createSearchHtml(htmlOptions);
       searchPanel.webview.onDidReceiveMessage(async (message) => {
+        if (message?.type === "copy-search-value") {
+          if (typeof message.value !== "string") {
+            return;
+          }
+          try {
+            await vscode.env.clipboard.writeText(message.value);
+            void vscode.window.showInformationMessage(
+              `Copied "${message.value}" to clipboard.`,
+            );
+          } catch (error) {
+            void vscode.window.showErrorMessage(
+              `Unable to copy value: ${msg(error)}`,
+            );
+          }
+          return;
+        }
+
         if (message?.type === "open-search-settings") {
           await manageConnections();
           return;
