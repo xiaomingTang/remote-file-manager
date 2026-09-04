@@ -631,6 +631,7 @@
   <div class="result-menu" id="resultMenu" role="menu" hidden>
     <button type="button" role="menuitem" data-copy="name">Copy File Name</button>
     <button type="button" role="menuitem" data-copy="path">Copy Full Path</button>
+    <button type="button" role="menuitem" data-copy="all-paths" hidden>Copy All Paths</button>
   </div>
   <script>
     const vscode = acquireVsCodeApi();
@@ -660,7 +661,11 @@
     const filesResults = document.getElementById("filesResults");
     const directoriesResults = document.getElementById("directoriesResults");
     const resultMenu = document.getElementById("resultMenu");
+    const copyAllPathsButton = resultMenu.querySelector("button[data-copy=\"all-paths\"]");
+    const copyResultButtons = resultMenu.querySelectorAll("button[data-copy]:not([data-copy=\"all-paths\"])");
+    const resultPaths = { files: [], directories: [] };
     let contextResult;
+    let contextPaths;
 
     function selectResultTab(tab) {
       const filesSelected = tab === filesTab;
@@ -723,6 +728,8 @@
     function clearResults() {
       filesResults.replaceChildren();
       directoriesResults.replaceChildren();
+      resultPaths.files = [];
+      resultPaths.directories = [];
       filesTab.textContent = "Files (0)";
       directoriesTab.textContent = "Directories (0)";
     }
@@ -730,20 +737,46 @@
     function hideResultMenu() {
       resultMenu.hidden = true;
       contextResult = undefined;
+      contextPaths = undefined;
     }
 
     function showResultMenu(event, result) {
       event.preventDefault();
       contextResult = result;
+      contextPaths = undefined;
+      copyAllPathsButton.hidden = true;
+      copyResultButtons.forEach((button) => { button.hidden = false; });
       resultMenu.hidden = false;
       resultMenu.style.left = `${Math.min(event.clientX, window.innerWidth - resultMenu.offsetWidth - 4)}px`;
       resultMenu.style.top = `${Math.min(event.clientY, window.innerHeight - resultMenu.offsetHeight - 4)}px`;
-      resultMenu.querySelector("button").focus();
+      resultMenu.querySelector("button:not([hidden])").focus();
     }
+
+    function showAllPathsMenu(event, paths) {
+      event.preventDefault();
+      contextResult = undefined;
+      contextPaths = paths;
+      copyResultButtons.forEach((button) => { button.hidden = true; });
+      copyAllPathsButton.hidden = false;
+      copyAllPathsButton.disabled = paths.length === 0;
+      resultMenu.hidden = false;
+      resultMenu.style.left = `${Math.min(event.clientX, window.innerWidth - resultMenu.offsetWidth - 4)}px`;
+      resultMenu.style.top = `${Math.min(event.clientY, window.innerHeight - resultMenu.offsetHeight - 4)}px`;
+      copyAllPathsButton.focus();
+    }
+
+    filesTab.addEventListener("contextmenu", (event) => showAllPathsMenu(event, resultPaths.files));
+    directoriesTab.addEventListener("contextmenu", (event) => showAllPathsMenu(event, resultPaths.directories));
 
     resultMenu.addEventListener("click", (event) => {
       const copyButton = event.target.closest("button[data-copy]");
-      if (!copyButton || !contextResult) return;
+      if (!copyButton) return;
+      if (copyButton.dataset.copy === "all-paths" && contextPaths) {
+        vscode.postMessage({ type: "copy-search-value", value: contextPaths.join("\n") });
+        hideResultMenu();
+        return;
+      }
+      if (!contextResult) return;
       const valueToCopy = copyButton.dataset.copy === "name"
         ? contextResult.path.split(/[\\/]/).filter(Boolean).pop() || contextResult.path
         : contextResult.path;
@@ -885,6 +918,7 @@
       filesTab.textContent = `Files (${fileCount})`;
       directoriesTab.textContent = `Directories (${directoryCount})`;
       message.results.forEach((result) => {
+        resultPaths[result.isDirectory ? "directories" : "files"].push(result.path);
         const item = document.createElement("li");
         item.className = "result";
         const button = document.createElement("button");

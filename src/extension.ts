@@ -323,9 +323,7 @@ export function activate(context: vscode.ExtensionContext): void {
           }
           try {
             await vscode.env.clipboard.writeText(message.value);
-            void vscode.window.showInformationMessage(
-              `Copied "${message.value}" to clipboard.`,
-            );
+            void vscode.window.showInformationMessage(`Copied to clipboard.`);
           } catch (error) {
             void vscode.window.showErrorMessage(
               `Unable to copy value: ${msg(error)}`,
