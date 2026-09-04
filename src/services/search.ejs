@@ -127,6 +127,18 @@
       background: var(--vscode-button-background);
     }
 
+    .icon-button:active,
+    .icon-button[aria-expanded="true"],
+    .icon-button[aria-pressed="true"] {
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
+    }
+
+    .icon-button:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder);
+      outline-offset: -1px;
+    }
+
     .help {
       position: relative;
       display: inline-flex;
@@ -141,6 +153,11 @@
       border-radius: 50%;
       font-size: .85em;
       line-height: 18px;
+    }
+
+    .help-button[aria-expanded="true"] {
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
     }
 
     .tooltip {
@@ -276,6 +293,8 @@
     button {
       padding: 6px 12px;
       cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     button:hover {
@@ -450,7 +469,7 @@
         <label for="value">Name
           <span class="help" id="nameHelp">
             <button class="help-button" id="nameHelpButton" type="button" title="Show name pattern examples"
-              aria-label="Show name pattern examples">?</button>
+              aria-label="Show name pattern examples" aria-expanded="false">?</button>
             <span class="tooltip" role="tooltip">
               <p>Patterns match file and directory names, ignoring case.</p>
               <table>
@@ -539,7 +558,7 @@
           <label for="maxResults">Maximum results
             <span class="help" id="maxResultsHelp">
               <button class="help-button" id="maxResultsHelpButton" type="button" title="Show maximum results information"
-                aria-label="Show maximum results information">?</button>
+                aria-label="Show maximum results information" aria-expanded="false">?</button>
               <span class="tooltip" role="tooltip">
                 <p>This value applies only to the current search and is discarded when this page is closed.</p>
                 <p>To save it for future searches, update <a href="#" id="openSearchSettings">VS Code settings</a>.</p>
@@ -552,7 +571,7 @@
           <label for="excludePatterns">Exclude patterns
             <span class="help" id="excludeHelp">
               <button class="help-button" id="helpButton" type="button" title="Show pattern examples"
-                aria-label="Show pattern examples">?</button>
+                aria-label="Show pattern examples" aria-expanded="false">?</button>
               <span class="tooltip" role="tooltip">
                 <p>Patterns are relative to the search directory and separated with ",".</p>
                 <table>
@@ -799,17 +818,25 @@
       if (help) {
         const shouldOpen = !help.classList.contains("open");
         helps.forEach((otherHelp) => {
-          otherHelp.classList.toggle("open", otherHelp === help && shouldOpen);
+          const isOpen = otherHelp === help && shouldOpen;
+          otherHelp.classList.toggle("open", isOpen);
+          otherHelp.querySelector(".help-button").setAttribute("aria-expanded", String(isOpen));
         });
         return;
       }
       helps.forEach((help) => {
-        if (!help.contains(event.target)) help.classList.remove("open");
+        if (!help.contains(event.target)) {
+          help.classList.remove("open");
+          help.querySelector(".help-button").setAttribute("aria-expanded", "false");
+        }
       });
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !event.isComposing) {
-        helps.forEach((help) => help.classList.remove("open"));
+        helps.forEach((help) => {
+          help.classList.remove("open");
+          help.querySelector(".help-button").setAttribute("aria-expanded", "false");
+        });
       }
     });
     connection.addEventListener("change", () => {
