@@ -372,6 +372,27 @@
       outline-offset: -1px;
     }
 
+    .result-filter {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 34px;
+      padding: 0 4px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      color: var(--vscode-descriptionForeground);
+    }
+
+    .result-filter label {
+      flex: 0 0 auto;
+      margin: 0 8px 0 0;
+    }
+
+    .result-filter input {
+      flex-grow: 1;
+      min-width: 0;
+      padding: 4px 6px;
+    }
+
     .result-columns {
       flex: 1 1 0;
       min-height: 0;
@@ -626,6 +647,10 @@
     <button class="result-tab" id="directoriesTab" type="button" role="tab" aria-selected="false"
       aria-controls="directoriesPanel">Directories (0)</button>
   </div>
+  <div class="result-filter">
+    <label for="resultFilterInput">filter:</label>
+    <input id="resultFilterInput" type="text" placeholder="filter" aria-label="Filter results by full path" />
+  </div>
   <div class="result-columns">
     <section class="result-section" id="filesPanel" role="tabpanel" aria-labelledby="filesTab">
       <ul class="results" id="filesResults"></ul>
@@ -666,10 +691,14 @@
     const directoriesPanel = document.getElementById("directoriesPanel");
     const filesResults = document.getElementById("filesResults");
     const directoriesResults = document.getElementById("directoriesResults");
+    const resultFilter = document.getElementById("resultFilterInput");
     const resultMenu = document.getElementById("resultMenu");
     const copyAllPathsButton = resultMenu.querySelector("button[data-copy=\"all-paths\"]");
     const copyResultButtons = resultMenu.querySelectorAll("button[data-copy]:not([data-copy=\"all-paths\"])");
     const resultPaths = { files: [], directories: [] };
+    const allResults = { files: [], directories: [] };
+    let resultFilterText = "";
+    let resultFilterTimer;
     let contextResult;
     let contextPaths;
 
@@ -747,9 +776,124 @@
       directoriesResults.replaceChildren();
       resultPaths.files = [];
       resultPaths.directories = [];
+      allResults.files = [];
+      allResults.directories = [];
       filesTab.textContent = "Files (0)";
       directoriesTab.textContent = "Directories (0)";
     }
+
+    function getFilterMatch(path, filter) {
+      const normalizedPath = path.toLocaleLowerCase();
+      const normalizedFilter = filter.toLocaleLowerCase();
+      const contiguousMatchIndex = normalizedPath.indexOf(normalizedFilter);
+      if (contiguousMatchIndex !== -1) {
+        return Array.from(
+          { length: normalizedFilter.length },
+          (_, index) => contiguousMatchIndex + index,
+        );
+      }
+      const indexes = [];
+      let pathIndex = 0;
+      for (const filterCharacter of normalizedFilter) {
+        const matchIndex = filterCharacter === "/"
+          ? normalizedPath.indexOf("/", pathIndex)
+          : findNonSeparator(normalizedPath, filterCharacter, pathIndex);
+        if (matchIndex === -1) return undefined;
+        indexes.push(matchIndex);
+        pathIndex = matchIndex + 1;
+      }
+      return indexes;
+    }
+
+    function findNonSeparator(path, character, start) {
+      for (let index = start; index < path.length; index++) {
+        if (path[index] === character) return index;
+      }
+      return -1;
+    }
+
+    function appendHighlightedText(parent, text, indexes) {
+      const indexSet = new Set(indexes);
+      for (let index = 0; index < text.length; index++) {
+        const part = document.createTextNode(text[index]);
+        if (indexSet.has(index)) {
+          const highlight = document.createElement("mark");
+          highlight.appendChild(part);
+          parent.appendChild(highlight);
+        } else {
+          parent.appendChild(part);
+        }
+      }
+    }
+
+    function prioritizeContiguousMatches(results) {
+      if (!resultFilterText) return results;
+      const normalizedFilter = resultFilterText.toLocaleLowerCase();
+      const contiguousMatches = [];
+      const otherMatches = [];
+      results.forEach((entry) => {
+        const target = entry.result.path.toLocaleLowerCase();
+        (target.includes(normalizedFilter) ? contiguousMatches : otherMatches).push(entry);
+      });
+      return [...contiguousMatches, ...otherMatches];
+    }
+
+    function renderResults() {
+      filesResults.replaceChildren();
+      directoriesResults.replaceChildren();
+      resultPaths.files = [];
+      resultPaths.directories = [];
+      const filteredResults = { files: [], directories: [] };
+      for (const result of [...allResults.files, ...allResults.directories]) {
+        const matchIndexes = getFilterMatch(result.path, resultFilterText);
+        if (matchIndexes === undefined) continue;
+        const resultType = result.isDirectory ? "directories" : "files";
+        filteredResults[resultType].push({ result, matchIndexes });
+      }
+      filteredResults.files = prioritizeContiguousMatches(filteredResults.files);
+      filteredResults.directories = prioritizeContiguousMatches(filteredResults.directories);
+      resultPaths.files = filteredResults.files.map(({ result }) => result.path);
+      resultPaths.directories = filteredResults.directories.map(({ result }) => result.path);
+      filesTab.textContent = `Files (${filteredResults.files.length})`;
+      directoriesTab.textContent = `Directories (${filteredResults.directories.length})`;
+      for (const resultType of ["files", "directories"]) {
+        const resultsElement = resultType === "files" ? filesResults : directoriesResults;
+        filteredResults[resultType].forEach(({ result, matchIndexes }) => {
+          const item = document.createElement("li");
+          item.className = "result";
+          const button = document.createElement("button");
+          button.type = "button";
+          const name = document.createElement("span");
+          name.className = "name";
+          name.textContent = result.name;
+          const path = document.createElement("span");
+          path.className = "path";
+          appendHighlightedText(path, result.path, matchIndexes);
+          button.append(name, path);
+          button.addEventListener("click", () => {
+            hideResultMenu();
+            item.classList.add("visited");
+            vscode.postMessage({ type: "open", connectionId: result.connectionId, path: result.path, isDirectory: result.isDirectory });
+          });
+          item.addEventListener("contextmenu", (event) => showResultMenu(event, result));
+          item.appendChild(button);
+          resultsElement.appendChild(item);
+        });
+      }
+    }
+
+    function updateResultFilter() {
+      resultFilter.value = resultFilterText;
+      renderResults();
+    }
+
+    resultFilter.addEventListener("input", () => {
+      clearTimeout(resultFilterTimer);
+      resultFilterTimer = setTimeout(() => {
+        resultFilterText = resultFilter.value;
+        updateResultFilter();
+      }, 120);
+    });
 
     function hideResultMenu() {
       resultMenu.hidden = true;
@@ -930,28 +1074,10 @@
       if (message.type !== "results") return;
       summary.className = "summary";
       summary.textContent = "";
-      const fileCount = message.results.filter((result) => !result.isDirectory).length;
-      const directoryCount = message.results.length - fileCount;
-      filesTab.textContent = `Files (${fileCount})`;
-      directoriesTab.textContent = `Directories (${directoryCount})`;
       message.results.forEach((result) => {
-        resultPaths[result.isDirectory ? "directories" : "files"].push(result.path);
-        const item = document.createElement("li");
-        item.className = "result";
-        const button = document.createElement("button");
-        button.type = "button";
-        button.innerHTML = `<span class="name"></span><span class="path"></span>`;
-        button.querySelector(".name").textContent = result.name;
-        button.querySelector(".path").textContent = result.path;
-        button.addEventListener("click", () => {
-          hideResultMenu();
-          item.classList.add("visited");
-          vscode.postMessage({ type: "open", connectionId: result.connectionId, path: result.path, isDirectory: result.isDirectory });
-        });
-        item.addEventListener("contextmenu", (event) => showResultMenu(event, result));
-        item.appendChild(button);
-        (result.isDirectory ? directoriesResults : filesResults).appendChild(item);
+        allResults[result.isDirectory ? "directories" : "files"].push(result);
       });
+      renderResults();
     });
   </script>
 </body>
