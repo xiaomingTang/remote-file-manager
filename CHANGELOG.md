@@ -6,6 +6,7 @@ All notable user-facing changes to Remote File Manager are documented here.
 
 - unify file conflict handling
 - fix(sqlite): preview WAL-enabled databases automatically
+- add full-path filtering for search results with contiguous-match prioritization and highlighting
 
 ## [0.1.5]
 
