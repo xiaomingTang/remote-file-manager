@@ -2,6 +2,10 @@
 
 All notable user-facing changes to Remote File Manager are documented here.
 
+## [0.1.6] - Unreleased
+
+- unify file conflict handling
+
 ## [0.1.5]
 
 - add interactive collapsed search options summary
