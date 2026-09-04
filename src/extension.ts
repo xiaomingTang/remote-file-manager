@@ -38,6 +38,7 @@ import {
 import { createInfoHtml, getInfoTitle } from "./services/info";
 import { createSearchHtml, search, SearchOptions } from "./services/search";
 import { DIFF_SCHEME, RemoteDiffManager } from "./services/diff";
+import { prepareSqlitePreview } from "./services/sqlite-preview";
 
 type TreeClipboardAction = "cut" | "copy";
 
@@ -831,7 +832,13 @@ export function activate(context: vscode.ExtensionContext): void {
 
         treeProvider.loading.set(node, 200);
         try {
-          const uri = toVirtualUri(node.connectionId, node.path);
+          const connector = await fileOperations.getConnector(
+            node.connectionId,
+          );
+          const sqlitePreviewPath = await prepareSqlitePreview(node, connector);
+          const uri = sqlitePreviewPath
+            ? vscode.Uri.file(sqlitePreviewPath)
+            : toVirtualUri(node.connectionId, node.path);
           const now = Date.now();
           const isDoubleClick =
             lastOpenedFile?.connectionId === node.connectionId &&

@@ -33,6 +33,7 @@ src/
 |   |-- info.ts             // Remote item information panel.
 |   |-- search.ejs          // Search panel template.
 |   |-- search.ts           // Remote file search panel and operations.
+	|-- sqlite-preview.ts    // Local preview preparation for SQLite databases.
 |   |-- terminal.ts         // Remote terminal creation.
 |   |-- transfer.ts         // Cross-connection transfer operations.
 |   `-- trash.ts            // Remote trash and cleanup handling.
