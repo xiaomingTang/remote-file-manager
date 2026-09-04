@@ -6,6 +6,8 @@ All notable user-facing changes to Remote File Manager are documented here.
 
 - add interactive collapsed search options summary
 - add a per-search maximum results setting
+- add the ability to navigate directly to a remote path with `remoteFileManager.goToPath`
+- add search result context menu actions for copying a file or directory name or full path
 
 ## [0.1.4]
 
