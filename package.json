@@ -142,6 +142,12 @@
         "icon": "$(terminal)"
       },
       {
+        "command": "remoteFileManager.goToPath",
+        "title": "Go to Remote Path",
+        "category": "Remote File Manager",
+        "icon": "$(target)"
+      },
+      {
         "command": "remoteFileManager.openFile",
         "title": "Open File"
       },
@@ -331,6 +337,11 @@
           "command": "remoteFileManager.openTerminal",
           "when": "view == remoteFileManagerView",
           "group": "6_terminal@0"
+        },
+        {
+          "command": "remoteFileManager.goToPath",
+          "when": "view == remoteFileManagerView && viewItem =~ /^connection(\\.readonly)?$/",
+          "group": "inline"
         }
       ],
       "commandPalette": [

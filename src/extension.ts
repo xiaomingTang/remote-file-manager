@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { ConnectionManager, manageConnections } from "./config";
 import {
+  TO_EXPAND,
   RemoteTreeDataProvider,
   RemoteTreeDragAndDropController,
 } from "./providers/tree";
@@ -15,6 +16,7 @@ import {
   dirname,
   formatItemNameSummary,
   joinPath,
+  normalizeRemotePath,
   resolveTreeCommandNode,
   resolveTreeCommandNodes,
   toVirtualUri,
@@ -238,7 +240,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const path = decodeRemotePath(uri);
     const parentPath = dirname(path);
     const parent = treeProvider.getDirectoryNode(uri.authority, parentPath);
-    await treeProvider.revealExpanded(parent);
+    await treeProvider.revealNode(parent, TO_EXPAND);
     await treeProvider.selectNode(uri.authority, parentPath, path, parent);
   };
 
@@ -343,8 +345,9 @@ export function activate(context: vscode.ExtensionContext): void {
           }
           if (message.isDirectory === true) {
             const parentPath = dirname(message.path);
-            await treeProvider.revealExpanded(
+            await treeProvider.revealNode(
               treeProvider.getDirectoryNode(message.connectionId, parentPath),
+              TO_EXPAND,
             );
             await treeProvider.selectNode(
               message.connectionId,
@@ -354,8 +357,9 @@ export function activate(context: vscode.ExtensionContext): void {
             return;
           }
           const parentPath = dirname(message.path);
-          await treeProvider.revealExpanded(
+          await treeProvider.revealNode(
             treeProvider.getDirectoryNode(message.connectionId, parentPath),
+            TO_EXPAND,
           );
           await treeProvider.selectNode(
             message.connectionId,
@@ -685,8 +689,9 @@ export function activate(context: vscode.ExtensionContext): void {
       clipboardState = undefined;
       updateClipboardContext();
       const targetConnection = target?.connectionId ?? items[0].connectionId;
-      await treeProvider.revealExpanded(
+      await treeProvider.revealNode(
         treeProvider.getDirectoryNode(targetConnection, destination, target),
+        TO_EXPAND,
       );
       await treeProvider.refresh();
       await treeProvider.selectNode(
@@ -801,8 +806,9 @@ export function activate(context: vscode.ExtensionContext): void {
         );
         lastUploadedPath = joinPath(target.path, targetName);
       }
-      await treeProvider.revealExpanded(
+      await treeProvider.revealNode(
         treeProvider.getDirectoryNode(target.connectionId, target.path, target),
+        TO_EXPAND,
       );
       await treeProvider.refresh();
       await treeProvider.selectNode(
@@ -949,6 +955,44 @@ export function activate(context: vscode.ExtensionContext): void {
       },
     ),
     vscode.commands.registerCommand(
+      "remoteFileManager.goToPath",
+      async (node?: RemoteNode) => {
+        const target = resolveTreeCommandNode(node, treeView.selection);
+        if (!target || target.type !== "connection") {
+          return;
+        }
+
+        const definition = connectionManager.getDefinition(target.connectionId);
+        if (!definition) {
+          return;
+        }
+
+        const targetPath = await vscode.window.showInputBox({
+          title: `Go to path in ${target.connectionId}`,
+          prompt: "Enter a remote path to reveal in the tree",
+          placeHolder: "/var/log",
+          value: normalizeRemotePath(definition.path ?? "/"),
+          ignoreFocusOut: true,
+          validateInput: (value) =>
+            value.trim() ? undefined : "Enter a remote path.",
+        });
+        if (targetPath === undefined) {
+          return;
+        }
+
+        const normalizedPath = normalizeRemotePath(targetPath.trim());
+        const resolved = await treeProvider.revealPath(
+          target.connectionId,
+          normalizedPath,
+        );
+        if (!resolved) {
+          void vscode.window.showWarningMessage(
+            `Remote path not found: ${normalizedPath}`,
+          );
+        }
+      },
+    ),
+    vscode.commands.registerCommand(
       "remoteFileManager.download",
       async (node?: RemoteNode) => {
         const targets = resolveTreeCommandNodes(
@@ -1022,7 +1066,7 @@ export function activate(context: vscode.ExtensionContext): void {
           );
           const path = joinPath(node.path, name.trim());
           await connector.createFile(path);
-          await treeProvider.revealExpanded(node);
+          await treeProvider.revealNode(node, TO_EXPAND);
           await treeProvider.refresh();
           await treeProvider.selectNode(
             node.connectionId,
@@ -1066,7 +1110,7 @@ export function activate(context: vscode.ExtensionContext): void {
             connectionId: node.connectionId,
             path,
           });
-          await treeProvider.revealExpanded(node);
+          await treeProvider.revealNode(node, TO_EXPAND);
           await treeProvider.refresh();
           await treeProvider.selectNode(
             node.connectionId,

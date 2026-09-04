@@ -12,6 +12,23 @@ import { RemoteFileOperations } from "../services/file-operations";
 import { LoadingManager } from "../loading";
 import { RemoteFileManagerFileSystemProvider } from "./fs";
 
+type RevealOptions = {
+  expand?: boolean | number;
+  focus?: boolean;
+  select?: boolean;
+};
+
+export const TO_EXPAND: RevealOptions = {
+  expand: true,
+  focus: false,
+  select: false,
+};
+export const TO_FOCUS: RevealOptions = {
+  expand: false,
+  focus: true,
+  select: true,
+};
+
 export class RemoteTreeDragAndDropController implements vscode.TreeDragAndDropController<RemoteNode> {
   readonly dropMimeTypes = ["application/vnd.code.tree.remotefilemanagerview"];
   readonly dragMimeTypes = ["application/vnd.code.tree.remotefilemanagerview"];
@@ -108,8 +125,9 @@ export class RemoteTreeDragAndDropController implements vscode.TreeDragAndDropCo
     }
 
     const targetConnection = target?.connectionId ?? payload[0].connectionId;
-    await this.treeProvider.revealExpanded(
+    await this.treeProvider.revealNode(
       this.treeProvider.getDirectoryNode(targetConnection, targetPath, target),
+      TO_EXPAND,
     );
     await this.treeProvider.refresh();
     await this.treeProvider.selectNode(
@@ -199,21 +217,73 @@ export class RemoteTreeDataProvider implements vscode.TreeDataProvider<RemoteNod
     };
   }
 
-  async revealExpanded(node?: RemoteNode): Promise<void> {
+  async revealPath(
+    connectionId: string,
+    targetPath: string,
+  ): Promise<RemoteNode | undefined> {
+    const definition = this.connectionManager.getDefinition(connectionId);
+    if (!definition) {
+      return undefined;
+    }
+
+    const rootPath = definition.path ?? "/";
+    const root = this.getDirectoryNode(connectionId, rootPath);
+    if (!root) {
+      return undefined;
+    }
+
+    const normalizedTarget = targetPath.replace(/\\/g, "/");
+    const normalizedRoot =
+      rootPath.replace(/\\/g, "/").replace(/\/+$/, "") || "/";
+    const isRoot = normalizedRoot === "/";
+    if (
+      normalizedTarget !== normalizedRoot &&
+      !(isRoot
+        ? normalizedTarget.startsWith("/")
+        : normalizedTarget.startsWith(`${normalizedRoot}/`))
+    ) {
+      return undefined;
+    }
+
+    await this.revealNode(root, TO_EXPAND);
+    if (normalizedTarget === normalizedRoot) {
+      return root;
+    }
+
+    const relativePath = isRoot
+      ? normalizedTarget.slice(1)
+      : normalizedTarget.slice(normalizedRoot.length + 1);
+    const segments = relativePath.split("/").filter(Boolean);
+    let current = root;
+    for (const segment of segments) {
+      const childPath = joinPath(current.path, segment);
+      const child = (await this.getChildren(current)).find(
+        (candidate) => candidate.path === childPath,
+      );
+      if (!child) {
+        return undefined;
+      }
+
+      current = child;
+      if (current.type === "directory") {
+        await this.revealNode(current, TO_EXPAND);
+      }
+    }
+
+    await this.revealNode(current, TO_FOCUS);
+    return current;
+  }
+
+  async revealNode(
+    node: RemoteNode | undefined,
+    options: RevealOptions,
+  ): Promise<void> {
     if (!this.treeView || !node) {
       return;
     }
 
-    if (node.type !== "directory" && node.type !== "connection") {
-      return;
-    }
-
     try {
-      await this.treeView.reveal(node, {
-        expand: true,
-        focus: false,
-        select: false,
-      });
+      await this.treeView.reveal(node, options);
     } catch {
       // Ignore reveal failures. The tree can still refresh and render correctly.
     }
@@ -225,10 +295,6 @@ export class RemoteTreeDataProvider implements vscode.TreeDataProvider<RemoteNod
     path: string | undefined,
     preferredNode?: RemoteNode,
   ): Promise<void> {
-    if (!this.treeView) {
-      return;
-    }
-
     const directory = this.getDirectoryNode(
       connectionId,
       directoryPath,
@@ -248,15 +314,7 @@ export class RemoteTreeDataProvider implements vscode.TreeDataProvider<RemoteNod
       return;
     }
 
-    try {
-      await this.treeView.reveal(node, {
-        expand: false,
-        focus: true,
-        select: true,
-      });
-    } catch {
-      // Ignore reveal failures. The tree can still refresh and render correctly.
-    }
+    await this.revealNode(node, TO_FOCUS);
   }
 
   async refresh(): Promise<void> {
